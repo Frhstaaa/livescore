@@ -145,7 +145,6 @@ export default function AdminTeams({ teams }) {
         }
     };
 
-    // Live active team data from teams prop
     const currentActiveTeam = squadModalTeam ? (teams.find(t => t.id === squadModalTeam.id) || squadModalTeam) : null;
 
     return (
@@ -153,7 +152,7 @@ export default function AdminTeams({ teams }) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Form Add / Edit Team */}
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
                     <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center">
                         <Shield className="w-5 h-5 text-brand-500 mr-2" />
                         {editingTeam ? 'Edit Tim Futsal' : 'Tambah Tim Futsal Baru'}
@@ -255,11 +254,65 @@ export default function AdminTeams({ teams }) {
                     </form>
                 </div>
 
-                {/* Team List Table */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                {/* Team List Table & Mobile Cards */}
+                <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
                     <h3 className="text-base font-bold text-gray-900 mb-4">Daftar Tim & Logo (.webp)</h3>
 
-                    <div className="overflow-x-auto">
+                    {/* Mobile Cards (Visible < md) */}
+                    <div className="block md:hidden space-y-3">
+                        {teams?.map((t) => (
+                            <div key={t.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50/60 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-700 overflow-hidden shadow-sm">
+                                            {t.logo_url ? (
+                                                <img src={t.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
+                                            ) : (
+                                                t.short_name
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black text-sm text-gray-900 leading-tight">{t.name}</h4>
+                                            <p className="text-[10px] text-gray-400 font-semibold">KODE: {t.short_name} • Pelatih: {t.coach_name || '-'}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleOpenSquadModal(t)}
+                                        className="px-2.5 py-1 rounded-full text-[10px] font-black bg-brand-50 text-brand-600 border border-brand-200"
+                                    >
+                                        {t.players_count || t.players?.length || 0} Pemain
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200/60">
+                                    <button
+                                        onClick={() => handleOpenSquadModal(t)}
+                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                    >
+                                        <Users className="w-3.5 h-3.5" />
+                                        <span>Kelola Skuad</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleEdit(t)}
+                                        className="px-3 py-1.5 bg-brand-50 text-brand-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        <span>Edit</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(t.id)}
+                                        className="px-3 py-1.5 bg-red-50 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <span>Hapus</span>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Desktop Table (Visible >= md) */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider">

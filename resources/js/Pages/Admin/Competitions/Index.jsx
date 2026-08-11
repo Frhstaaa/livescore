@@ -58,7 +58,6 @@ export default function AdminCompetitions({ competitions, allTeams }) {
 
     const handleOpenTeamModal = (c) => {
         setTeamModalComp(c);
-        // Existing participant team IDs in standings
         const currentIds = c.standings ? c.standings.map(s => s.team_id) : [];
         setSelectedTeamIds(currentIds);
     };
@@ -95,7 +94,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Form Create / Edit Competition */}
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
                     <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center">
                         <Trophy className="w-5 h-5 text-brand-500 mr-2" />
                         {editingComp ? 'Edit Turnamen Futsal' : 'Tambah Turnamen Futsal Baru'}
@@ -230,10 +229,82 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                 </div>
 
                 {/* Right 2 Columns: Competitions List */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
                     <h3 className="text-base font-bold text-gray-900 mb-4">Daftar Turnamen Futsal</h3>
 
-                    <div className="overflow-x-auto">
+                    {/* Mobile Cards (Visible < md) */}
+                    <div className="block md:hidden space-y-3">
+                        {competitions?.map((c) => {
+                            const participantCount = c.standings?.length || 0;
+                            return (
+                                <div key={c.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50/60 space-y-3">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <h4 className="font-black text-sm text-gray-900 leading-tight">{c.name}</h4>
+                                            <span className="text-[10px] font-bold text-gray-400">Season {c.season}</span>
+                                        </div>
+                                        {c.is_active ? (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 shrink-0">
+                                                ● AKTIFF
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleSetActive(c.id)}
+                                                className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white border border-gray-200 hover:bg-emerald-50 text-gray-600 shrink-0"
+                                            >
+                                                Aktifkan
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-200/60">
+                                        <div className="flex items-center space-x-2">
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-brand-50 text-brand-600">
+                                                {c.type}
+                                            </span>
+                                            <span className="font-bold text-gray-700 text-[11px]">
+                                                ⏱️ {c.match_duration_minutes || 40}' ({c.half_duration_minutes || 20}'x2)
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => handleOpenTeamModal(c)}
+                                            className="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200 flex items-center space-x-1"
+                                        >
+                                            <Users className="w-3 h-3" />
+                                            <span>{participantCount} Tim</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200/60">
+                                        <button
+                                            onClick={() => handleOpenTeamModal(c)}
+                                            className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        >
+                                            <Users className="w-3.5 h-3.5" />
+                                            <span>Kelola Tim</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleEdit(c)}
+                                            className="px-3 py-1.5 bg-brand-50 text-brand-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                            <span>Edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(c.id)}
+                                            className="px-3 py-1.5 bg-red-50 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            <span>Hapus</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Desktop Table (Visible >= md) */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider">

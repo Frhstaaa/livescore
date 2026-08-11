@@ -1,29 +1,24 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { useForm } from '@inertiajs/react';
-import { Plus, Trash2, Edit2, HeartHandshake, FileText, CheckCircle2 } from 'lucide-react';
+import { useForm, router } from '@inertiajs/react';
+import { HeartHandshake, Plus, Trash2, Edit2, FileText, Info } from 'lucide-react';
 
-export default function AdminSponsors({ sponsors, competition }) {
+export default function AdminSponsors({ sponsors, activeCompetition }) {
     const [editingSponsor, setEditingSponsor] = useState(null);
 
-    // Form for About description
-    const aboutForm = useForm({
-        about_description: competition?.about_description || '',
-    });
-
-    // Form for Sponsor
+    // Form Sponsor
     const sponsorForm = useForm({
         name: '',
         logo_url: '',
-        tier: 'gold',
         website_url: '',
-        order: 1,
+        tier: 'gold',
+        is_active: true,
     });
 
-    const submitAbout = (e) => {
-        e.preventDefault();
-        aboutForm.post('/admin/sponsors/about');
-    };
+    // Form About / Competition Info
+    const aboutForm = useForm({
+        about_description: activeCompetition?.about_description || '',
+    });
 
     const submitSponsor = (e) => {
         e.preventDefault();
@@ -41,75 +36,85 @@ export default function AdminSponsors({ sponsors, competition }) {
         }
     };
 
-    const handleEdit = (s) => {
+    const submitAbout = (e) => {
+        e.preventDefault();
+        if (activeCompetition) {
+            aboutForm.put(`/admin/competitions/${activeCompetition.id}`, {
+                preserveScroll: true
+            });
+        }
+    };
+
+    const handleEditSponsor = (s) => {
         setEditingSponsor(s);
         sponsorForm.setData({
             name: s.name,
             logo_url: s.logo_url || '',
-            tier: s.tier,
             website_url: s.website_url || '',
-            order: s.order || 1,
+            tier: s.tier,
+            is_active: s.is_active,
         });
     };
 
-    const handleDelete = (id) => {
+    const handleDeleteSponsor = (id) => {
         if (confirm('Yakin ingin menghapus sponsor ini?')) {
-            sponsorForm.delete(`/admin/sponsors/${id}`);
+            router.delete(`/admin/sponsors/${id}`);
         }
     };
 
     return (
-        <AdminLayout title="Kelola Sponsor & About Page">
+        <AdminLayout title="Sponsor & Pengaturan Halaman About">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* Left Column: Edit About Text & Form Add Sponsor */}
+                {/* Left Column: Forms */}
                 <div className="space-y-6">
                     
-                    {/* About Description Form */}
-                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                            <FileText className="w-5 h-5 text-brand-500 mr-2" />
-                            Deskripsi About Tournament
+                    {/* About Turnamen Description Form */}
+                    <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
+                        <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center">
+                            <Info className="w-5 h-5 text-brand-500 mr-2" />
+                            Deskripsi About Turnamen Utama
                         </h3>
 
-                        <form onSubmit={submitAbout} className="space-y-3 text-xs">
+                        <form onSubmit={submitAbout} className="space-y-4 text-xs">
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">Teks Deskripsi / Profil Event</label>
+                                <label className="block font-bold text-gray-700 mb-1">
+                                    Informasi Turnamen ({activeCompetition?.name || 'Kompetisi Futsal'})
+                                </label>
                                 <textarea
-                                    rows="4"
+                                    rows={5}
                                     value={aboutForm.data.about_description}
                                     onChange={(e) => aboutForm.setData('about_description', e.target.value)}
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-brand-500"
-                                    placeholder="Tulis deskripsi event turnamen futsal RS LIVASYA..."
-                                ></textarea>
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-900 outline-none focus:ring-2 focus:ring-brand-500"
+                                    placeholder="Tuliskan deskripsi resmi turnamen RS LIVASYA FUTSAL CUP 2026 yang akan tampil pada halaman About publik..."
+                                />
                             </div>
 
                             <button
                                 type="submit"
-                                className="w-full py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-sm text-xs flex items-center justify-center space-x-1"
+                                className="w-full py-3 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-md text-xs"
                             >
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                <span>Simpan Deskripsi About</span>
+                                Simpan Deskripsi About
                             </button>
                         </form>
                     </div>
 
-                    {/* Add / Edit Sponsor Form */}
-                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                            <HeartHandshake className="w-5 h-5 text-amber-500 mr-2" />
-                            {editingSponsor ? 'Edit Data Sponsor' : 'Tambah Sponsor Baru'}
+                    {/* Sponsor Form */}
+                    <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
+                        <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center">
+                            <HeartHandshake className="w-5 h-5 text-brand-500 mr-2" />
+                            {editingSponsor ? 'Edit Sponsor & Partner' : 'Tambah Sponsor Baru'}
                         </h3>
 
-                        <form onSubmit={submitSponsor} className="space-y-3 text-xs">
+                        <form onSubmit={submitSponsor} className="space-y-4 text-xs">
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">Nama Sponsor / Perusahaan</label>
+                                <label className="block font-bold text-gray-700 mb-1">Nama Perusahaan / Sponsor</label>
                                 <input
                                     type="text"
                                     value={sponsorForm.data.name}
                                     onChange={(e) => sponsorForm.setData('name', e.target.value)}
                                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900"
-                                    placeholder="PT Livasya Medika"
+                                    placeholder="RS Livasya Official / Aqua / Specs"
                                     required
                                 />
                             </div>
@@ -173,11 +178,54 @@ export default function AdminSponsors({ sponsors, competition }) {
 
                 </div>
 
-                {/* Right 2 Columns: Sponsors List Table */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                {/* Right 2 Columns: Sponsors List Table & Mobile Cards */}
+                <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
                     <h3 className="text-base font-bold text-gray-900 mb-4">Daftar Sponsor & Partner</h3>
 
-                    <div className="overflow-x-auto">
+                    {/* Mobile Cards (< md) */}
+                    <div className="block md:hidden space-y-3">
+                        {sponsors?.map((s) => (
+                            <div key={s.id} className="p-3.5 rounded-2xl border border-gray-100 bg-gray-50/60 flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-700 overflow-hidden shrink-0 shadow-sm">
+                                        {s.logo_url ? (
+                                            <img src={s.logo_url} alt="" className="w-full h-full object-contain p-1" />
+                                        ) : (
+                                            s.name[0]
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-sm text-gray-900 leading-tight">{s.name}</h4>
+                                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                            s.tier === 'main' ? 'bg-amber-100 text-amber-800' :
+                                            s.tier === 'gold' ? 'bg-yellow-100 text-yellow-800' :
+                                            s.tier === 'silver' ? 'bg-slate-200 text-slate-800' : 'bg-brand-50 text-brand-600'
+                                        }`}>
+                                            {s.tier}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-1">
+                                    <button
+                                        onClick={() => handleEditSponsor(s)}
+                                        className="p-2 text-brand-500 bg-white border border-gray-200 rounded-xl transition-colors"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteSponsor(s.id)}
+                                        className="p-2 text-red-500 bg-white border border-gray-200 rounded-xl transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Desktop Table (>= md) */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider">
@@ -220,13 +268,13 @@ export default function AdminSponsors({ sponsors, competition }) {
                                         </td>
                                         <td className="py-3 px-4 text-right space-x-2">
                                             <button
-                                                onClick={() => handleEdit(s)}
+                                                onClick={() => handleEditSponsor(s)}
                                                 className="p-1.5 text-brand-500 hover:bg-brand-50 rounded-lg transition-colors"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(s.id)}
+                                                onClick={() => handleDeleteSponsor(s.id)}
                                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                             >
                                                 <Trash2 className="w-4 h-4" />
