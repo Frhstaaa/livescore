@@ -10,7 +10,7 @@ class TeamRepository implements TeamRepositoryInterface
 {
     public function getAllTeams(): Collection
     {
-        return Team::withCount('players')->orderBy('name', 'asc')->get();
+        return Team::withCount('players')->with('players')->orderBy('name', 'asc')->get();
     }
 
     public function getTeamById(int $id): ?Team
