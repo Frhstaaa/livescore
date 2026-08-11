@@ -8,6 +8,7 @@ export default function AdminTeams({ teams }) {
     const [editingTeam, setEditingTeam] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [squadModalTeam, setSquadModalTeam] = useState(null);
+    const [editingPlayer, setEditingPlayer] = useState(null);
 
     // Form Team
     const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
@@ -19,11 +20,12 @@ export default function AdminTeams({ teams }) {
         logo_file: null,
     });
 
-    // Form Quick Add Player into Team
+    // Form Player (Add / Edit)
     const {
         data: playerData,
         setData: setPlayerData,
         post: postPlayer,
+        put: putPlayer,
         reset: resetPlayer,
         errors: playerErrors
     } = useForm({
@@ -83,6 +85,7 @@ export default function AdminTeams({ teams }) {
 
     const handleOpenSquadModal = (team) => {
         setSquadModalTeam(team);
+        setEditingPlayer(null);
         setPlayerData({
             team_id: team.id,
             name: '',
@@ -91,32 +94,59 @@ export default function AdminTeams({ teams }) {
         });
     };
 
-    const handleAddPlayerToSquad = (e) => {
-        e.preventDefault();
-        postPlayer('/admin/players', {
-            onSuccess: () => {
-                resetPlayer();
-                // Refresh modal state with updated team data
-                const updatedTeam = teams.find(t => t.id === squadModalTeam.id);
-                if (updatedTeam) {
-                    setSquadModalTeam(updatedTeam);
-                }
-            }
+    const handleEditPlayerClick = (player) => {
+        setEditingPlayer(player);
+        setPlayerData({
+            team_id: squadModalTeam.id,
+            name: player.name,
+            jersey_number: player.jersey_number,
+            position: player.position || 'Flank',
         });
+    };
+
+    const handleSavePlayer = (e) => {
+        e.preventDefault();
+        if (editingPlayer) {
+            putPlayer(`/admin/players/${editingPlayer.id}`, {
+                onSuccess: () => {
+                    setEditingPlayer(null);
+                    setPlayerData({
+                        team_id: squadModalTeam.id,
+                        name: '',
+                        jersey_number: (squadModalTeam.players?.length || 0) + 1,
+                        position: 'Flank',
+                    });
+                }
+            });
+        } else {
+            postPlayer('/admin/players', {
+                onSuccess: () => {
+                    setPlayerData({
+                        team_id: squadModalTeam.id,
+                        name: '',
+                        jersey_number: (squadModalTeam.players?.length || 0) + 2,
+                        position: 'Flank',
+                    });
+                }
+            });
+        }
     };
 
     const handleDeletePlayer = (playerId) => {
         if (confirm('Yakin ingin menghapus pemain ini dari skuad?')) {
-            destroy(`/admin/players/${playerId}`, {
+            router.delete(`/admin/players/${playerId}`, {
+                preserveScroll: true,
                 onSuccess: () => {
-                    const updatedTeam = teams.find(t => t.id === squadModalTeam.id);
-                    if (updatedTeam) {
-                        setSquadModalTeam(updatedTeam);
+                    if (editingPlayer && editingPlayer.id === playerId) {
+                        setEditingPlayer(null);
                     }
                 }
             });
         }
     };
+
+    // Live active team data from teams prop
+    const currentActiveTeam = squadModalTeam ? (teams.find(t => t.id === squadModalTeam.id) || squadModalTeam) : null;
 
     return (
         <AdminLayout title="Kelola Tim & Skuad Pemain">
@@ -300,9 +330,9 @@ export default function AdminTeams({ teams }) {
 
             </div>
 
-            {/* MODAL KELOLA SKUAD PEMAIN TIM */}
+            {/* MODAL KELOLA SKUAD PEMAIN TIM (FULL ADD/EDIT/DELETE) */}
             <AnimatePresence>
-                {squadModalTeam && (
+                {currentActiveTeam && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
@@ -314,17 +344,17 @@ export default function AdminTeams({ teams }) {
                             <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
                                 <div className="flex items-center space-x-3">
                                     <div className="w-10 h-10 rounded-xl bg-slate-50 border border-gray-200 flex items-center justify-center overflow-hidden">
-                                        {squadModalTeam.logo_url ? (
-                                            <img src={squadModalTeam.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
+                                        {currentActiveTeam.logo_url ? (
+                                            <img src={currentActiveTeam.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
                                         ) : (
-                                            <span className="font-black text-xs text-gray-700">{squadModalTeam.short_name}</span>
+                                            <span className="font-black text-xs text-gray-700">{currentActiveTeam.short_name}</span>
                                         )}
                                     </div>
                                     <div>
                                         <h3 className="text-base font-black text-gray-900 leading-tight">
                                             Kelola Skuad Pemain
                                         </h3>
-                                        <p className="text-xs font-bold text-brand-600">{squadModalTeam.name} ({squadModalTeam.players?.length || 0} Pemain)</p>
+                                        <p className="text-xs font-bold text-brand-600">{currentActiveTeam.name} ({currentActiveTeam.players?.length || 0} Pemain)</p>
                                     </div>
                                 </div>
 
@@ -336,12 +366,31 @@ export default function AdminTeams({ teams }) {
                                 </button>
                             </div>
 
-                            {/* Quick Add Player Form */}
-                            <form onSubmit={handleAddPlayerToSquad} className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200/80 mb-4 text-xs space-y-3">
-                                <h4 className="font-black text-gray-700 text-xs flex items-center">
-                                    <UserPlus className="w-4 h-4 text-brand-500 mr-1.5" />
-                                    + Tambah Pemain Baru ke {squadModalTeam.name}
-                                </h4>
+                            {/* Add / Edit Player Form */}
+                            <form onSubmit={handleSavePlayer} className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200/80 mb-4 text-xs space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <h4 className="font-black text-gray-700 text-xs flex items-center">
+                                        <UserPlus className="w-4 h-4 text-brand-500 mr-1.5" />
+                                        {editingPlayer ? `Edit Pemain: ${editingPlayer.name}` : `+ Tambah Pemain Baru ke ${currentActiveTeam.name}`}
+                                    </h4>
+                                    {editingPlayer && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditingPlayer(null);
+                                                setPlayerData({
+                                                    team_id: currentActiveTeam.id,
+                                                    name: '',
+                                                    jersey_number: (currentActiveTeam.players?.length || 0) + 1,
+                                                    position: 'Flank',
+                                                });
+                                            }}
+                                            className="text-[10px] font-bold text-red-500 hover:underline"
+                                        >
+                                            Batal Edit
+                                        </button>
+                                    )}
+                                </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <div className="sm:col-span-2">
@@ -354,6 +403,7 @@ export default function AdminTeams({ teams }) {
                                             placeholder="Ardiansyah Runtuboy"
                                             required
                                         />
+                                        {playerErrors.name && <span className="text-red-500 text-[10px] mt-0.5 block">{playerErrors.name}</span>}
                                     </div>
 
                                     <div>
@@ -387,22 +437,22 @@ export default function AdminTeams({ teams }) {
                                         type="submit"
                                         className="mt-4 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-md text-xs shrink-0"
                                     >
-                                        + Tambah Pemain
+                                        {editingPlayer ? 'Simpan Perubahan' : '+ Tambah Pemain'}
                                     </button>
                                 </div>
                             </form>
 
                             {/* Squad Roster Table */}
                             <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
-                                DAFTAR SKUAD RESMI ({squadModalTeam.players?.length || 0})
+                                DAFTAR SKUAD RESMI ({currentActiveTeam.players?.length || 0})
                             </h4>
 
                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar min-h-[160px]">
-                                {squadModalTeam.players && squadModalTeam.players.length > 0 ? (
-                                    squadModalTeam.players.map((player) => (
+                                {currentActiveTeam.players && currentActiveTeam.players.length > 0 ? (
+                                    currentActiveTeam.players.map((player) => (
                                         <div
                                             key={player.id}
-                                            className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-gray-100 shadow-sm text-xs"
+                                            className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-gray-100 shadow-sm text-xs hover:border-brand-200 transition-colors"
                                         >
                                             <div className="flex items-center space-x-3">
                                                 <span className="w-7 h-7 rounded-lg bg-brand-500 text-white font-black text-xs flex items-center justify-center shrink-0">
@@ -414,13 +464,22 @@ export default function AdminTeams({ teams }) {
                                                 </div>
                                             </div>
 
-                                            <button
-                                                onClick={() => handleDeletePlayer(player.id)}
-                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                title="Hapus Pemain dari Skuad"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center space-x-1">
+                                                <button
+                                                    onClick={() => handleEditPlayerClick(player)}
+                                                    className="p-1.5 text-brand-500 hover:bg-brand-50 rounded-lg transition-colors"
+                                                    title="Edit Pemain Ini"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePlayer(player.id)}
+                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Hapus Pemain dari Skuad"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (

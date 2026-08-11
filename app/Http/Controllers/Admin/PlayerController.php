@@ -34,7 +34,7 @@ class PlayerController extends Controller
             'team_id' => 'required|exists:teams,id',
             'name' => 'required|string|max:100',
             'jersey_number' => 'required|integer',
-            'position' => 'required|in:GK,DEF,MID,FWD',
+            'position' => 'required|string|max:20',
             'photo_url' => 'nullable|string',
             'date_of_birth' => 'nullable|date',
         ]);
@@ -49,7 +49,7 @@ class PlayerController extends Controller
             'team_id' => 'required|exists:teams,id',
             'name' => 'required|string|max:100',
             'jersey_number' => 'required|integer',
-            'position' => 'required|in:GK,DEF,MID,FWD',
+            'position' => 'required|string|max:20',
             'photo_url' => 'nullable|string',
             'date_of_birth' => 'nullable|date',
         ]);
