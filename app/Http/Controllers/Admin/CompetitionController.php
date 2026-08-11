@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Competition;
+use App\Models\Standing;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,8 +14,13 @@ class CompetitionController extends Controller
 {
     public function index(): Response
     {
-        $competitions = Competition::orderBy('created_at', 'desc')->get();
-        return Inertia::render('Admin/Competitions/Index', ['competitions' => $competitions]);
+        $competitions = Competition::with('standings.team')->orderBy('created_at', 'desc')->get();
+        $allTeams = Team::orderBy('name', 'asc')->get();
+
+        return Inertia::render('Admin/Competitions/Index', [
+            'competitions' => $competitions,
+            'allTeams' => $allTeams,
+        ]);
     }
 
     public function store(Request $request)
@@ -65,6 +72,33 @@ class CompetitionController extends Controller
         $competition = Competition::findOrFail($id);
         $competition->update($validated);
         return back()->with('message', 'Pengaturan kompetisi berhasil diperbarui');
+    }
+
+    public function syncTeams(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'exists:teams,id',
+        ]);
+
+        $competition = Competition::findOrFail($id);
+        $selectedTeamIds = $validated['team_ids'] ?? [];
+
+        // Add selected teams to standings if not existing
+        foreach ($selectedTeamIds as $tId) {
+            Standing::firstOrCreate(
+                ['competition_id' => $id, 'team_id' => $tId],
+                ['played' => 0, 'win' => 0, 'draw' => 0, 'lose' => 0, 'points' => 0]
+            );
+        }
+
+        // Remove unselected teams if played is 0
+        Standing::where('competition_id', $id)
+            ->whereNotIn('team_id', $selectedTeamIds)
+            ->where('played', 0)
+            ->delete();
+
+        return back()->with('message', "Daftar tim peserta '{$competition->name}' berhasil diperbarui.");
     }
 
     public function setActive(int $id)
