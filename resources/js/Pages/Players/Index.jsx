@@ -77,39 +77,45 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
                         transition={{ duration: 0.2 }}
                         className="space-y-2"
                     >
-                        {topScorers?.map((player, idx) => (
-                            <motion.div
-                                key={player.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.04 }}
-                                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-card flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${
-                                        idx === 0 ? 'bg-amber-400 text-white shadow-md' :
-                                        idx === 1 ? 'bg-slate-300 text-slate-800' :
-                                        idx === 2 ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-500'
-                                    }`}>
-                                        {idx + 1}
+                        {topScorers && topScorers.length > 0 ? (
+                            topScorers.map((player, idx) => (
+                                <motion.div
+                                    key={player.id || idx}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.04 }}
+                                    className="bg-white rounded-2xl p-3 border border-gray-100 shadow-card flex items-center justify-between"
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${
+                                            idx === 0 ? 'bg-amber-400 text-white shadow-md' :
+                                            idx === 1 ? 'bg-slate-300 text-slate-800' :
+                                            idx === 2 ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                            {idx + 1}
+                                        </div>
+                                        <div className="w-9 h-9 rounded-full bg-slate-50 border border-gray-200 flex items-center justify-center font-bold text-xs text-slate-700 overflow-hidden shrink-0">
+                                            {player.team?.logo_url ? (
+                                                <img src={player.team.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
+                                            ) : (
+                                                player.jersey_number || '#'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-black text-gray-900">{player.name || 'Pemain'}</h4>
+                                            <span className="text-[10px] text-gray-400 font-bold">{player.team?.name || 'Tim Futsal'} • #{player.jersey_number || 0}</span>
+                                        </div>
                                     </div>
-                                    <div className="w-9 h-9 rounded-full bg-slate-50 border border-gray-200 flex items-center justify-center font-bold text-xs text-slate-700 overflow-hidden shrink-0">
-                                        {player.team?.logo_url ? (
-                                            <img src={player.team.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
-                                        ) : (
-                                            player.jersey_number
-                                        )}
+                                    <div className="text-right">
+                                        <span className="text-sm font-black text-brand-600 block">
+                                            {player.total_goals ?? player.goals ?? 0} Gol
+                                        </span>
                                     </div>
-                                    <div>
-                                        <h4 className="text-xs font-black text-gray-900">{player.name}</h4>
-                                        <span className="text-[10px] text-gray-400 font-bold">{player.team?.name} • #{player.jersey_number}</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-sm font-black text-brand-600 block">{player.total_goals || 0} Gol</span>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            ))
+                        ) : (
+                            <p className="text-xs text-gray-400 text-center py-6">Belum ada data pemain untuk statistik ini.</p>
+                        )}
                     </motion.div>
                 )}
 
@@ -123,28 +129,41 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
                         transition={{ duration: 0.2 }}
                         className="space-y-2"
                     >
-                        {topAssists?.map((player, idx) => (
-                            <motion.div
-                                key={player.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.04 }}
-                                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-card flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-500">
-                                        {idx + 1}
+                        {topAssists && topAssists.length > 0 ? (
+                            topAssists.map((player, idx) => (
+                                <motion.div
+                                    key={player.id || idx}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.04 }}
+                                    className="bg-white rounded-2xl p-3 border border-gray-100 shadow-card flex items-center justify-between"
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-500">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="w-9 h-9 rounded-full bg-slate-50 border border-gray-200 flex items-center justify-center font-bold text-xs text-slate-700 overflow-hidden shrink-0">
+                                            {player.team?.logo_url ? (
+                                                <img src={player.team.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
+                                            ) : (
+                                                player.jersey_number || '#'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-black text-gray-900">{player.name || 'Pemain'}</h4>
+                                            <span className="text-[10px] text-gray-400 font-bold">{player.team?.name || 'Tim Futsal'} • #{player.jersey_number || 0}</span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-xs font-black text-gray-900">{player.name}</h4>
-                                        <span className="text-[10px] text-gray-400 font-bold">{player.team?.name} • #{player.jersey_number}</span>
+                                    <div className="text-right">
+                                        <span className="text-sm font-black text-emerald-600 block">
+                                            {player.total_assists ?? player.assists ?? 0} Assist
+                                        </span>
                                     </div>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-sm font-black text-emerald-600 block">{player.total_assists || 0} Assist</span>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            ))
+                        ) : (
+                            <p className="text-xs text-gray-400 text-center py-6">Belum ada data assist tercatat.</p>
+                        )}
                     </motion.div>
                 )}
 
@@ -158,29 +177,40 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
                         transition={{ duration: 0.2 }}
                         className="space-y-2"
                     >
-                        {topCards?.map((player, idx) => (
-                            <motion.div
-                                key={player.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.04 }}
-                                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-card flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-500">
-                                        {idx + 1}
+                        {topCards && topCards.length > 0 ? (
+                            topCards.map((player, idx) => (
+                                <motion.div
+                                    key={player.id || idx}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.04 }}
+                                    className="bg-white rounded-2xl p-3 border border-gray-100 shadow-card flex items-center justify-between"
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-500">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="w-9 h-9 rounded-full bg-slate-50 border border-gray-200 flex items-center justify-center font-bold text-xs text-slate-700 overflow-hidden shrink-0">
+                                            {player.team?.logo_url ? (
+                                                <img src={player.team.logo_url} alt="" className="w-full h-full object-contain p-0.5" />
+                                            ) : (
+                                                player.jersey_number || '#'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-black text-gray-900">{player.name || 'Pemain'}</h4>
+                                            <span className="text-[10px] text-gray-400 font-bold">{player.team?.name}</span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-xs font-black text-gray-900">{player.name}</h4>
-                                        <span className="text-[10px] text-gray-400 font-bold">{player.team?.name}</span>
+                                    <div className="flex items-center space-x-2 font-black text-xs">
+                                        <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg">🟨 {player.yellow_cards || 0}</span>
+                                        <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-lg">🟥 {player.red_cards || 0}</span>
                                     </div>
-                                </div>
-                                <div className="flex items-center space-x-2 font-black text-xs">
-                                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg">🟨 {player.yellow_cards || 0}</span>
-                                    <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-lg">🟥 {player.red_cards || 0}</span>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            ))
+                        ) : (
+                            <p className="text-xs text-gray-400 text-center py-6">Tidak ada statistik kartu tercatat.</p>
+                        )}
                     </motion.div>
                 )}
 
