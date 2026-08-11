@@ -90,11 +90,11 @@ export default function AdminCompetitions({ competitions, allTeams }) {
     };
 
     return (
-        <AdminLayout title="Pengaturan Turnamen & Tim Peserta">
+        <AdminLayout title="Pengaturan Turnamen">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Form Create / Edit Competition */}
-                <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
+                <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
                     <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center">
                         <Trophy className="w-5 h-5 text-brand-500 mr-2" />
                         {editingComp ? 'Edit Turnamen Futsal' : 'Tambah Turnamen Futsal Baru'}
@@ -114,7 +114,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                             {errors.name && <span className="text-red-500 text-[10px] mt-1 block">{errors.name}</span>}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                                 <label className="block font-bold text-gray-700 mb-1">Musim / Season</label>
                                 <input
@@ -131,11 +131,11 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                 <select
                                     value={data.type}
                                     onChange={(e) => setData('type', e.target.value)}
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900"
+                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900 truncate"
                                 >
-                                    <option value="league">🏆 League (Klasemen Poin)</option>
-                                    <option value="knockout">🥊 Cup (Sistem Gugur)</option>
-                                    <option value="group">🧩 Group Stage (Fase Grup)</option>
+                                    <option value="league">🏆 League (Klasemen)</option>
+                                    <option value="knockout">🥊 Cup (Gugur)</option>
+                                    <option value="group">🧩 Group Stage</option>
                                 </select>
                             </div>
                         </div>
@@ -149,7 +149,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
 
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label className="block font-semibold text-gray-600 text-[10px] mb-1">Total Durasi Match</label>
+                                    <label className="block font-semibold text-gray-600 text-[10px] mb-1">Total Durasi</label>
                                     <input
                                         type="number"
                                         value={data.match_duration_minutes}
@@ -160,7 +160,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                 </div>
 
                                 <div>
-                                    <label className="block font-semibold text-gray-600 text-[10px] mb-1">Menit per Babak</label>
+                                    <label className="block font-semibold text-gray-600 text-[10px] mb-1">Menit/Babak</label>
                                     <input
                                         type="number"
                                         value={data.half_duration_minutes}

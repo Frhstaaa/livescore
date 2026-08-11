@@ -169,38 +169,38 @@ export default function AdminLayout({ children, title }) {
             {/* Main Wrapper */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Header Navbar */}
-                <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-                    <div className="flex items-center space-x-3">
+                <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+                    <div className="flex items-center space-x-2 min-w-0 pr-2">
                         <button
                             onClick={() => setMobileMenuOpen(true)}
-                            className="md:hidden p-2 rounded-xl text-gray-600 hover:text-brand-500 hover:bg-gray-100 transition-colors"
+                            className="md:hidden p-1.5 rounded-xl text-gray-600 hover:text-brand-500 hover:bg-gray-100 transition-colors shrink-0"
                             aria-label="Toggle Navigation Menu"
                         >
                             <Menu className="w-5 h-5 stroke-[2.5]" />
                         </button>
-                        <h1 className="text-base sm:text-lg font-black text-gray-900 tracking-tight leading-tight truncate">
+                        <h1 className="text-sm sm:text-base font-black text-gray-900 tracking-tight leading-tight truncate">
                             {title}
                         </h1>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                        <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase tracking-wider">
-                            ● Server Ready
+                    <div className="flex items-center space-x-2 shrink-0">
+                        <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                            ● Ready
                         </span>
                         <Link
                             href="/"
                             target="_blank"
-                            className="text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-xl border border-brand-200 transition-all flex items-center space-x-1"
+                            className="text-[11px] sm:text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-brand-200 transition-all flex items-center shrink-0"
                         >
-                            <span className="hidden xs:inline">Lihat Halaman Publik</span>
-                            <span className="xs:hidden">Publik</span>
-                            <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+                            <span className="hidden sm:inline">Lihat Halaman Publik</span>
+                            <span className="sm:hidden">Publik</span>
+                            <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-1" />
                         </Link>
                     </div>
                 </header>
 
                 {/* Main Page Area */}
-                <main className="p-4 sm:p-6 flex-1 overflow-y-auto">
+                <main className="p-3.5 sm:p-6 flex-1 overflow-y-auto">
                     {children}
                 </main>
             </div>
