@@ -12,7 +12,7 @@ class FavoriteController extends Controller
 {
     public function index(): Response
     {
-        $teams = Team::take(6)->get();
+        $teams = Team::with(['players', 'standings'])->get();
         $competitions = Competition::where('is_active', true)->get();
 
         return Inertia::render('Favorites/Index', [
