@@ -13,7 +13,7 @@ use App\Http\Controllers\Public\FavoriteController;
 use App\Http\Controllers\Public\LivescoreController;
 use App\Http\Controllers\Public\MatchDetailController;
 use App\Http\Controllers\Public\PlayerController;
-use App\Http\Controllers\Public/StandingController;
+use App\Http\Controllers\Public\StandingController;
 use Illuminate\Support\Facades\Route;
 
 /*
