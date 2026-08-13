@@ -18,23 +18,25 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Public Routes
+| Public Routes (Protected against HTTP Flood DDoS: 60 req/min)
 |--------------------------------------------------------------------------
 */
-Route::get('/', [LivescoreController::class, 'index'])->name('public.index');
-Route::get('/match/{id}', [MatchDetailController::class, 'show'])->name('public.match.detail');
-Route::get('/players', [PlayerController::class, 'index'])->name('public.players');
-Route::get('/standings', [StandingController::class, 'index'])->name('public.standings');
-Route::get('/favorites', [FavoriteController::class, 'index'])->name('public.favorites');
-Route::get('/about', [AboutController::class, 'index'])->name('public.about');
+Route::middleware(['throttle:60,1'])->group(function () {
+    Route::get('/', [LivescoreController::class, 'index'])->name('public.index');
+    Route::get('/match/{id}', [MatchDetailController::class, 'show'])->name('public.match.detail');
+    Route::get('/players', [PlayerController::class, 'index'])->name('public.players');
+    Route::get('/standings', [StandingController::class, 'index'])->name('public.standings');
+    Route::get('/favorites', [FavoriteController::class, 'index'])->name('public.favorites');
+    Route::get('/about', [AboutController::class, 'index'])->name('public.about');
+});
 
 /*
 |--------------------------------------------------------------------------
-| Admin Authentication Routes
+| Admin Authentication Routes (Protected against Brute-Force: 5 attempts/min)
 |--------------------------------------------------------------------------
 */
 Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login');
-Route::post('/admin/login', [AuthController::class, 'login']);
+Route::post('/admin/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
 
 /*
