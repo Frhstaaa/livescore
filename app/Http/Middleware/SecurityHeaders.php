@@ -30,15 +30,16 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-        // Content Security Policy
-        $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
-               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
-               "font-src 'self' https://fonts.gstatic.com; " .
-               "img-src 'self' data: https: http: blob:; " .
-               "connect-src 'self' ws: wss:;";
-               
-        $response->headers->set('Content-Security-Policy', $csp);
+        // Content Security Policy (Vite dev server compatible)
+        if (!app()->isLocal()) {
+            $csp = "default-src 'self'; " .
+                   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
+                   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+                   "font-src 'self' https://fonts.gstatic.com; " .
+                   "img-src 'self' data: https: http: blob:; " .
+                   "connect-src 'self' ws: wss:;";
+            $response->headers->set('Content-Security-Policy', $csp);
+        }
 
         return $response;
     }
