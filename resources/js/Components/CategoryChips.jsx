@@ -44,7 +44,7 @@ export default function CategoryChips({ competitions, selectedId }) {
                     className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm shrink-0 ${
                         !selectedId
                             ? 'bg-brand-500 text-white shadow-brand-500/30'
-                            : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
+                            : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-100 dark:border-slate-700/60 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                 >
                     ⚽ Semua Futsal
@@ -61,7 +61,7 @@ export default function CategoryChips({ competitions, selectedId }) {
                             className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm shrink-0 ${
                                 isActive
                                     ? 'bg-brand-500 text-white shadow-brand-500/30'
-                                    : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
+                                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-100 dark:border-slate-700/60 hover:bg-gray-50 dark:hover:bg-slate-700'
                             }`}
                         >
                             🏆 {comp.name}

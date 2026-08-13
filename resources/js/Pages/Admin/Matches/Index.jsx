@@ -9,7 +9,7 @@ export default function AdminMatches({ matches, competitions, teams }) {
         home_team_id: teams[0] ? teams[0].id : '',
         away_team_id: teams[1] ? teams[1].id : '',
         round: 'Penyisihan Grup',
-        venue: 'GOR Livasya Futsal Center',
+        venue: 'Rama Futsall Kadipaten',
         match_date: new Date().toISOString().slice(0, 16),
         status: 'scheduled',
     });

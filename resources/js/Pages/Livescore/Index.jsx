@@ -37,11 +37,11 @@ export default function LivescoreIndex({ matches, selectedDate, competitions, se
                 Object.entries(grouped).map(([compName, matchGroup], idx) => (
                     <div key={idx} className="mb-5">
                         <div className="flex items-center justify-between py-2 mb-1 px-1">
-                            <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center">
+                            <h3 className="text-xs font-black text-gray-800 dark:text-slate-200 uppercase tracking-wider flex items-center">
                                 <span className="w-2 h-2 rounded-full bg-brand-500 mr-2"></span>
                                 {compName}
                             </h3>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                            <ChevronRight className="w-4 h-4 text-gray-400 dark:text-slate-500" />
                         </div>
 
                         {matchGroup.map((match) => (
@@ -50,10 +50,10 @@ export default function LivescoreIndex({ matches, selectedDate, competitions, se
                     </div>
                 ))
             ) : (
-                <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center my-6 shadow-sm">
-                    <CalendarX className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <h4 className="text-sm font-bold text-gray-800 mb-1">Tidak Ada Pertandingan</h4>
-                    <p className="text-xs text-gray-400">Belum ada jadwal pertandingan pada tanggal ini.</p>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-gray-100 dark:border-slate-700/60 text-center my-6 shadow-sm">
+                    <CalendarX className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+                    <h4 className="text-sm font-bold text-gray-800 dark:text-slate-200 mb-1">Tidak Ada Pertandingan</h4>
+                    <p className="text-xs text-gray-400 dark:text-slate-400">Belum ada jadwal pertandingan pada tanggal ini.</p>
                 </div>
             )}
         </MobileLayout>

@@ -79,6 +79,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Sponsors & About
     Route::get('/sponsors', [SponsorController::class, 'index'])->name('sponsors.index');
     Route::post('/sponsors', [SponsorController::class, 'store'])->name('sponsors.store');
+    Route::post('/sponsors/about', [SponsorController::class, 'updateAbout'])->name('sponsors.about');
     Route::put('/sponsors/{id}', [SponsorController::class, 'update'])->name('sponsors.update');
     Route::delete('/sponsors/{id}', [SponsorController::class, 'destroy'])->name('sponsors.destroy');
 });

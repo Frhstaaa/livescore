@@ -29,7 +29,7 @@ export default function DateSelector({ selectedDate }) {
     }
 
     return (
-        <div className="flex justify-between items-center py-2 px-1 border-b border-gray-100 mb-3">
+        <div className="flex justify-between items-center py-2 px-1 border-b border-gray-100 dark:border-slate-800 mb-3">
             {dates.map((item, idx) => {
                 const isActive = selectedDate === item.iso;
                 return (
@@ -38,14 +38,14 @@ export default function DateSelector({ selectedDate }) {
                         onClick={() => router.get('/', { date: item.iso }, { preserveState: true })}
                         className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition-all duration-200 ${
                             isActive
-                                ? 'text-brand-500 font-bold bg-brand-50'
-                                : 'text-gray-400 hover:text-gray-600'
+                                ? 'text-brand-500 font-bold bg-brand-50 dark:bg-brand-500/10'
+                                : 'text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200'
                         }`}
                     >
                         <span className={`text-[11px] font-medium ${isActive ? 'text-brand-500 font-bold' : ''}`}>
                             {item.dayName}
                         </span>
-                        <span className={`text-xs ${isActive ? 'font-black text-brand-600' : 'font-semibold text-gray-700'}`}>
+                        <span className={`text-xs ${isActive ? 'font-black text-brand-600 dark:text-brand-400' : 'font-semibold text-gray-700 dark:text-slate-300'}`}>
                             {item.formatted}
                         </span>
                     </button>

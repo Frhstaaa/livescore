@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('home_team_id')->constrained('teams')->onDelete('cascade');
             $table->foreignId('away_team_id')->constrained('teams')->onDelete('cascade');
             $table->dateTime('match_date');
-            $table->string('venue', 150)->default('GOR Futsal RS LIVASYA');
+            $table->string('venue', 150)->default('Rama Futsall Kadipaten');
             $table->enum('status', ['scheduled', 'live', 'half_time', 'full_time', 'postponed', 'cancelled'])->default('scheduled');
             $table->integer('current_minute')->default(0);
             $table->integer('home_score')->default(0);

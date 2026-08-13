@@ -25,7 +25,7 @@ export default function MatchCard({ match }) {
         >
             <Link
                 href={`/match/${match.id}`}
-                className="block bg-white rounded-2xl p-4 border border-gray-100 shadow-card hover:shadow-md transition-all duration-200 mb-3 relative overflow-hidden group"
+                className="block bg-white dark:bg-slate-800 rounded-2xl p-4 border border-gray-100 dark:border-slate-700/60 shadow-card hover:shadow-md transition-all duration-200 mb-3 relative overflow-hidden group"
             >
                 {/* Live Indicator Accent Bar */}
                 {isLive && (
@@ -40,18 +40,18 @@ export default function MatchCard({ match }) {
                         {/* Home Team */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center font-bold text-xs text-slate-700 shadow-inner border border-gray-200 overflow-hidden shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 shadow-inner border border-gray-200 dark:border-slate-600 overflow-hidden shrink-0">
                                     {match.home_team?.logo_url ? (
                                         <img src={match.home_team.logo_url} alt={match.home_team.name} className="w-full h-full object-contain p-0.5" />
                                     ) : (
                                         match.home_team?.short_name || 'HOME'
                                     )}
                                 </div>
-                                <span className="text-sm font-bold text-gray-900 group-hover:text-brand-500 transition-colors">
+                                <span className="text-sm font-bold text-gray-900 dark:text-slate-100 group-hover:text-brand-500 transition-colors">
                                     {match.home_team?.name}
                                 </span>
                             </div>
-                            <span className="text-base font-black text-gray-900">
+                            <span className="text-base font-black text-gray-900 dark:text-white">
                                 {isUpcoming ? '-' : match.home_score}
                             </span>
                         </div>
@@ -59,18 +59,18 @@ export default function MatchCard({ match }) {
                         {/* Away Team */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center font-bold text-xs text-slate-700 shadow-inner border border-gray-200 overflow-hidden shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 shadow-inner border border-gray-200 dark:border-slate-600 overflow-hidden shrink-0">
                                     {match.away_team?.logo_url ? (
                                         <img src={match.away_team.logo_url} alt={match.away_team.name} className="w-full h-full object-contain p-0.5" />
                                     ) : (
                                         match.away_team?.short_name || 'AWAY'
                                     )}
                                 </div>
-                                <span className="text-sm font-bold text-gray-900 group-hover:text-brand-500 transition-colors">
+                                <span className="text-sm font-bold text-gray-900 dark:text-slate-100 group-hover:text-brand-500 transition-colors">
                                     {match.away_team?.name}
                                 </span>
                             </div>
-                            <span className="text-base font-black text-gray-900">
+                            <span className="text-base font-black text-gray-900 dark:text-white">
                                 {isUpcoming ? '-' : match.away_score}
                             </span>
                         </div>
@@ -78,7 +78,7 @@ export default function MatchCard({ match }) {
                     </div>
 
                     {/* Right Side: Status / Live Clock */}
-                    <div className="flex flex-col items-end justify-center pl-3 border-l border-gray-100 min-w-[75px]">
+                    <div className="flex flex-col items-end justify-center pl-3 border-l border-gray-100 dark:border-slate-700/80 min-w-[75px]">
                         {isLive && (
                             <div className="flex flex-col items-center">
                                 <LiveTimer
@@ -96,8 +96,8 @@ export default function MatchCard({ match }) {
 
                         {isFullTime && (
                             <div className="flex flex-col items-center">
-                                <span className="text-xs font-black text-gray-400 mb-1">FT</span>
-                                <button className="text-gray-300 hover:text-brand-500 transition-colors p-1">
+                                <span className="text-xs font-black text-gray-400 dark:text-slate-500 mb-1">FT</span>
+                                <button className="text-gray-300 dark:text-slate-600 hover:text-brand-500 transition-colors p-1">
                                     <Bell className="w-4 h-4" />
                                 </button>
                             </div>
@@ -105,8 +105,8 @@ export default function MatchCard({ match }) {
 
                         {isUpcoming && (
                             <div className="flex flex-col items-end">
-                                <span className="text-xs font-bold text-gray-900 mb-1">{kickoffTime}</span>
-                                <button className="text-gray-400 hover:text-brand-500 transition-colors p-1">
+                                <span className="text-xs font-bold text-gray-900 dark:text-slate-200 mb-1">{kickoffTime}</span>
+                                <button className="text-gray-400 dark:text-slate-500 hover:text-brand-500 transition-colors p-1">
                                     <Bell className="w-4 h-4" />
                                 </button>
                             </div>

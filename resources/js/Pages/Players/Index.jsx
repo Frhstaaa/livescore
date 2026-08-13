@@ -18,17 +18,17 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
 
     return (
         <MobileLayout>
-            <h2 className="text-lg font-black text-gray-900 tracking-tight mb-2">Statistik Pemain</h2>
+            <h2 className="text-lg font-black text-gray-900 dark:text-white tracking-tight mb-2">Statistik Pemain</h2>
 
             <CategoryChips competitions={competitions} selectedId={selectedCompetitionId} />
 
             {/* Neat & Equal 4-Column Stat Category Selector Tabs */}
-            <div className="grid grid-cols-4 gap-1 p-1.5 bg-gray-100/80 rounded-2xl border border-gray-200/50 my-3">
+            <div className="grid grid-cols-4 gap-1 p-1.5 bg-gray-100/80 dark:bg-slate-800/80 rounded-2xl border border-gray-200/50 dark:border-slate-700/60 my-3">
                 <motion.button
                     whileTap={{ scale: 0.93 }}
                     onClick={() => setStatTab('scorers')}
                     className={`relative py-2 px-1 rounded-xl text-[10px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1 ${
-                        statTab === 'scorers' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 hover:text-gray-800 font-semibold'
+                        statTab === 'scorers' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 font-semibold'
                     }`}
                 >
                     <Award className="w-3.5 h-3.5 shrink-0" />
@@ -38,7 +38,7 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
                     whileTap={{ scale: 0.93 }}
                     onClick={() => setStatTab('assists')}
                     className={`relative py-2 px-1 rounded-xl text-[10px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1 ${
-                        statTab === 'assists' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 hover:text-gray-800 font-semibold'
+                        statTab === 'assists' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 font-semibold'
                     }`}
                 >
                     <Zap className="w-3.5 h-3.5 shrink-0" />
@@ -48,7 +48,7 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
                     whileTap={{ scale: 0.93 }}
                     onClick={() => setStatTab('cards')}
                     className={`relative py-2 px-1 rounded-xl text-[10px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1 ${
-                        statTab === 'cards' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 hover:text-gray-800 font-semibold'
+                        statTab === 'cards' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 font-semibold'
                     }`}
                 >
                     <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
@@ -58,7 +58,7 @@ export default function PlayersIndex({ topScorers, topAssists, topCards, competi
                     whileTap={{ scale: 0.93 }}
                     onClick={() => setStatTab('squad')}
                     className={`relative py-2 px-1 rounded-xl text-[10px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1 ${
-                        statTab === 'squad' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 hover:text-gray-800 font-semibold'
+                        statTab === 'squad' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black' : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 font-semibold'
                     }`}
                 >
                     <Users className="w-3.5 h-3.5 shrink-0" />

@@ -38,11 +38,9 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
 
     const submitAbout = (e) => {
         e.preventDefault();
-        if (activeCompetition) {
-            aboutForm.put(`/admin/competitions/${activeCompetition.id}`, {
-                preserveScroll: true
-            });
-        }
+        aboutForm.post('/admin/sponsors/about', {
+            preserveScroll: true
+        });
     };
 
     const handleEditSponsor = (s) => {
