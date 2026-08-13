@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutDashboard, Radio, Trophy, Users, UserPlus, Calendar, HeartHandshake, LogOut, Menu, X, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Radio, Trophy, Users, UserPlus, Calendar, HeartHandshake, LogOut, Menu, X, ExternalLink, Newspaper } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminLayout({ children, title }) {
@@ -15,6 +15,7 @@ export default function AdminLayout({ children, title }) {
         { label: 'Kelola Tim', icon: Users, href: '/admin/teams' },
         { label: 'Kelola Pemain', icon: UserPlus, href: '/admin/players' },
         { label: 'Jadwal Match', icon: Calendar, href: '/admin/matches' },
+        { label: 'Kelola Event', icon: Newspaper, href: '/admin/events' },
         { label: 'Sponsor & About', icon: HeartHandshake, href: '/admin/sponsors' },
     ];
 

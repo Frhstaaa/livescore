@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Trophy, Award, Star, Search, Sun, Moon, Activity, Info } from 'lucide-react';
+import { Trophy, Award, Star, Search, Activity, Info, Newspaper } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MobileLayout({ children }) {
@@ -24,16 +24,12 @@ export default function MobileLayout({ children }) {
         }
     }, [darkMode]);
 
-    const toggleDarkMode = () => {
-        setDarkMode((prev) => !prev);
-    };
-
     const navItems = [
         { label: 'Score', icon: Activity, href: '/', active: url === '/' || url.startsWith('/match') },
         { label: 'Pemain', icon: Award, href: '/players', active: url.startsWith('/players') },
         { label: 'Klasemen', icon: Trophy, href: '/standings', active: url.startsWith('/standings') },
         { label: 'Favorit', icon: Star, href: '/favorites', active: url.startsWith('/favorites') },
-        { label: 'About', icon: Info, href: '/about', active: url.startsWith('/about') },
+        { label: 'Event', icon: Newspaper, href: '/events', active: url.startsWith('/events') },
     ];
 
     return (
@@ -45,7 +41,7 @@ export default function MobileLayout({ children }) {
                 darkMode ? 'bg-slate-900 text-slate-100 dark' : 'bg-white text-gray-900'
             }`}>
                 
-                {/* Top Header with RS LIVASYA Official Logo & Dark Mode Toggle */}
+                {/* Top Header with RS LIVASYA Official Logo & About Info Link */}
                 <header className={`sticky top-0 z-40 backdrop-blur-md px-4 py-3 border-b flex items-center justify-between transition-colors duration-300 ${
                     darkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-100'
                 }`}>
@@ -74,23 +70,21 @@ export default function MobileLayout({ children }) {
                             <Search className="w-5 h-5" />
                         </motion.button>
                         
-                        {/* Dark Mode Toggle Button */}
-                        <motion.button
-                            whileTap={{ scale: 0.85, rotate: 15 }}
-                            onClick={toggleDarkMode}
-                            title={darkMode ? "Mode Terang" : "Mode Gelap (Dark Mode)"}
-                            className={`p-2 rounded-full transition-all duration-300 ${
-                                darkMode 
-                                    ? 'bg-slate-800 text-amber-400 hover:bg-slate-700 border border-slate-700 shadow-inner' 
-                                    : 'text-gray-500 hover:text-brand-500 hover:bg-brand-50'
-                            }`}
-                        >
-                            {darkMode ? (
-                                <Sun className="w-5 h-5 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
-                            ) : (
-                                <Moon className="w-5 h-5" />
-                            )}
-                        </motion.button>
+                        {/* Header Info (i) button linking to About page */}
+                        <Link href="/about" title="Tentang Turnamen & Venue">
+                            <motion.div
+                                whileTap={{ scale: 0.85 }}
+                                className={`p-2 rounded-full transition-all duration-300 flex items-center justify-center ${
+                                    url.startsWith('/about')
+                                        ? 'bg-brand-500 text-white shadow-md'
+                                        : darkMode 
+                                            ? 'text-slate-400 hover:text-brand-400 hover:bg-slate-800' 
+                                            : 'text-gray-500 hover:text-brand-500 hover:bg-brand-50'
+                                }`}
+                            >
+                                <Info className="w-5 h-5" />
+                            </motion.div>
+                        </Link>
                     </div>
                 </header>
 

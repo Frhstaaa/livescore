@@ -8,7 +8,9 @@ use App\Http\Controllers\Admin\MatchController;
 use App\Http\Controllers\Admin\PlayerController as AdminPlayerController;
 use App\Http\Controllers\Admin\SponsorController;
 use App\Http\Controllers\Admin\TeamController;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Public\AboutController;
+use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\FavoriteController;
 use App\Http\Controllers\Public\LivescoreController;
 use App\Http\Controllers\Public\MatchDetailController;
@@ -27,6 +29,8 @@ Route::middleware(['throttle:60,1'])->group(function () {
     Route::get('/players', [PlayerController::class, 'index'])->name('public.players');
     Route::get('/standings', [StandingController::class, 'index'])->name('public.standings');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('public.favorites');
+    Route::get('/events', [PublicEventController::class, 'index'])->name('public.events');
+    Route::post('/events/{id}/like', [PublicEventController::class, 'like'])->name('public.events.like');
     Route::get('/about', [AboutController::class, 'index'])->name('public.about');
 });
 
@@ -77,6 +81,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/live/{id}/status', [LiveControlController::class, 'updateStatus'])->name('live.status');
     Route::post('/live/{id}/event', [LiveControlController::class, 'addEvent'])->name('live.event');
     Route::post('/live/{id}/motm', [LiveControlController::class, 'setMotm'])->name('live.motm');
+
+    // Events Management
+    Route::get('/events', [AdminEventController::class, 'index'])->name('events.index');
+    Route::post('/events', [AdminEventController::class, 'store'])->name('events.store');
+    Route::put('/events/{id}', [AdminEventController::class, 'update'])->name('events.update');
+    Route::delete('/events/{id}', [AdminEventController::class, 'destroy'])->name('events.destroy');
 
     // Sponsors & About
     Route::get('/sponsors', [SponsorController::class, 'index'])->name('sponsors.index');
