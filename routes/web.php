@@ -103,5 +103,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // Registrants
     Route::get('/registrants', [AdminRegistrationController::class, 'index'])->name('registrants.index');
+    Route::post('/registrants', [AdminRegistrationController::class, 'store'])->name('registrants.store');
     Route::post('/registrants/randomize', [AdminRegistrationController::class, 'randomize'])->name('registrants.randomize');
+    Route::put('/registrants/{id}/status', [AdminRegistrationController::class, 'updateStatus'])->name('registrants.status');
+    Route::post('/registrants/{id}/assign', [AdminRegistrationController::class, 'assignToTeam'])->name('registrants.assign');
+    Route::delete('/registrants/{id}', [AdminRegistrationController::class, 'destroy'])->name('registrants.destroy');
 });

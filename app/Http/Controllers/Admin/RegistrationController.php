@@ -27,11 +27,69 @@ class RegistrationController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
+        $teams = Team::orderBy('name', 'asc')->get(['id', 'name', 'short_name']);
+
         return Inertia::render('Admin/Registrants/Index', [
             'registrants' => $registrants,
             'competitions' => $competitions,
-            'filters' => ['competition_id' => $competition_id]
+            'teams' => $teams,
+            'filters' => ['competition_id' => $competition_id ? (int) $competition_id : null]
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'competition_id' => 'required|exists:competitions,id',
+            'name' => 'required|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'position' => 'required|in:GK,DEF,MID,FWD',
+        ]);
+
+        $validated['status'] = 'pending';
+        Registrant::create($validated);
+
+        return redirect()->back()->with('success', 'Pendaftar baru berhasil ditambahkan.');
+    }
+
+    public function destroy($id)
+    {
+        $registrant = Registrant::findOrFail($id);
+        $registrant->delete();
+
+        return redirect()->back()->with('success', 'Data pendaftar berhasil dihapus.');
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,assigned',
+        ]);
+
+        $registrant = Registrant::findOrFail($id);
+        $registrant->update(['status' => $validated['status']]);
+
+        return redirect()->back()->with('success', 'Status pendaftar berhasil diubah menjadi ' . $validated['status']);
+    }
+
+    public function assignToTeam(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'team_id' => 'required|exists:teams,id',
+        ]);
+
+        $registrant = Registrant::findOrFail($id);
+
+        Player::create([
+            'team_id' => $validated['team_id'],
+            'name' => $registrant->name,
+            'jersey_number' => rand(1, 99),
+            'position' => $registrant->position,
+        ]);
+
+        $registrant->update(['status' => 'assigned']);
+
+        return redirect()->back()->with('success', 'Pemain berhasil dimasukkan ke dalam tim pilihan.');
     }
 
     public function randomize(Request $request)
@@ -42,14 +100,14 @@ class RegistrationController extends Controller
         ]);
 
         $competition_id = $request->competition_id;
-        $teams_count = $request->teams_count;
+        $teams_count = (int) $request->teams_count;
 
         $registrants = Registrant::where('competition_id', $competition_id)
             ->where('status', 'pending')
             ->get();
 
         if ($registrants->count() < $teams_count) {
-            return redirect()->back()->with('error', 'Jumlah pendaftar (' . $registrants->count() . ') lebih sedikit dari jumlah tim yang ingin dibuat (' . $teams_count . ').');
+            return redirect()->back()->with('error', 'Jumlah pendaftar pending (' . $registrants->count() . ') lebih sedikit dari jumlah tim yang ingin dibuat (' . $teams_count . ').');
         }
 
         // Shuffle registrants
@@ -62,14 +120,22 @@ class RegistrationController extends Controller
             $teams = [];
             for ($i = 1; $i <= $teams_count; $i++) {
                 $team = Team::create([
-                    'name' => 'Tim ' . $i,
-                    'short_name' => 'T' . $i,
+                    'name' => 'Tim Futsal ' . $i,
+                    'short_name' => 'TF' . $i,
                 ]);
 
                 // Register team to competition standings
                 Standing::create([
                     'competition_id' => $competition_id,
                     'team_id' => $team->id,
+                    'played' => 0,
+                    'won' => 0,
+                    'drawn' => 0,
+                    'lost' => 0,
+                    'goals_for' => 0,
+                    'goals_against' => 0,
+                    'goal_difference' => 0,
+                    'points' => 0,
                 ]);
 
                 $teams[] = $team;
@@ -94,7 +160,7 @@ class RegistrationController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Berhasil mengacak ' . $registrants->count() . ' pemain ke dalam ' . $teams_count . ' tim.');
+            return redirect()->back()->with('success', 'Berhasil mengacak ' . $registrants->count() . ' pendaftar ke dalam ' . $teams_count . ' tim baru.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Terjadi kesalahan saat mengacak tim: ' . $e->getMessage());
