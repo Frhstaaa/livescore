@@ -82,19 +82,10 @@ export default function MobileLayout({ children }) {
                     </div>
                 </header>
 
-                {/* Page Content with Framer Motion Animated Transition */}
-                <AnimatePresence mode="wait">
-                    <motion.main
-                        key={url}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                        className="flex-1 px-4 py-3"
-                    >
-                        {children}
-                    </motion.main>
-                </AnimatePresence>
+                {/* Page Content */}
+                <main className="flex-1 px-4 py-3">
+                    {children}
+                </main>
 
                 {/* Bottom Navigation Bar */}
                 <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-1.5 z-50 flex justify-around items-center shadow-lg">

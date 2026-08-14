@@ -37,35 +37,33 @@ export default function CategoryChips({ competitions, selectedId }) {
                 ref={scrollRef}
                 className="flex items-center space-x-2 overflow-x-auto scroll-smooth no-scrollbar touch-pan-x py-2 px-1 w-full select-none"
             >
-                <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.95 }}
+                <button
+                    type="button"
                     onClick={() => handleSelect(null)}
-                    className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm shrink-0 ${
+                    className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm shrink-0 active:scale-95 ${
                         !selectedId
                             ? 'bg-brand-500 text-white shadow-brand-500/30'
-                            : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-100 dark:border-slate-700/60 hover:bg-gray-50 dark:hover:bg-slate-700'
+                            : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
                     }`}
                 >
                     ⚽ Semua Futsal
-                </motion.button>
+                </button>
 
                 {competitions?.map((comp) => {
                     const isActive = selectedId == comp.id;
                     return (
-                        <motion.button
+                        <button
                             key={comp.id}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.95 }}
+                            type="button"
                             onClick={() => handleSelect(comp.id)}
-                            className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm shrink-0 ${
+                            className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm shrink-0 active:scale-95 ${
                                 isActive
                                     ? 'bg-brand-500 text-white shadow-brand-500/30'
-                                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-100 dark:border-slate-700/60 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
                             }`}
                         >
                             🏆 {comp.name}
-                        </motion.button>
+                        </button>
                     );
                 })}
             </div>
