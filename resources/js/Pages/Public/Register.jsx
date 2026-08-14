@@ -42,8 +42,9 @@ export default function Register({ competitions = [] }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('public.register.store'), {
-            onSuccess: () => reset('name', 'phone', 'position'),
+        post('/register', {
+            preserveScroll: true,
+            onSuccess: () => reset('name', 'phone'),
         });
     };
 

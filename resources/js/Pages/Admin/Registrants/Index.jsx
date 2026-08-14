@@ -13,13 +13,13 @@ export default function Index({ registrants, competitions, filters }) {
     });
 
     const handleFilterChange = (e) => {
-        router.get(route('admin.registrants.index'), { competition_id: e.target.value }, { preserveState: true });
+        router.get('/admin/registrants', { competition_id: e.target.value }, { preserveState: true });
         setData('competition_id', e.target.value);
     };
 
     const handleRandomize = (e) => {
         e.preventDefault();
-        post(route('admin.registrants.randomize'), {
+        post('/admin/registrants/randomize', {
             onSuccess: () => setShowModal(false),
         });
     };
