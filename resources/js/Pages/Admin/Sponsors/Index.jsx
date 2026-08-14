@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
 import { HeartHandshake, Plus, Trash2, Edit2, FileText, Info } from 'lucide-react';
 
 export default function AdminSponsors({ sponsors, activeCompetition }) {
     const [editingSponsor, setEditingSponsor] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
     // Form Sponsor
     const sponsorForm = useForm({
@@ -54,10 +56,15 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
         });
     };
 
-    const handleDeleteSponsor = (id) => {
-        if (confirm('Yakin ingin menghapus sponsor ini?')) {
-            router.delete(`/admin/sponsors/${id}`);
-        }
+    const handleDeleteSponsor = (s) => {
+        setDeleteModal({ isOpen: true, id: s.id, name: s.name });
+    };
+
+    const confirmDeleteSponsor = () => {
+        if (!deleteModal.id) return;
+        router.delete(`/admin/sponsors/${deleteModal.id}`, {
+            onSuccess: () => setDeleteModal({ isOpen: false, id: null, name: '' })
+        });
     };
 
     return (
@@ -272,8 +279,9 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDeleteSponsor(s.id)}
+                                                onClick={() => handleDeleteSponsor(s)}
                                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Hapus sponsor"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -286,6 +294,16 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
                 </div>
 
             </div>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Hapus Sponsor Turnamen"
+                message={`Apakah Anda yakin ingin menghapus sponsor "${deleteModal.name}"? Logo dan informasi sponsor ini akan dihapus dari sistem.`}
+                confirmText="Ya, Hapus Sponsor"
+                onConfirm={confirmDeleteSponsor}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+            />
         </AdminLayout>
     );
 }

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
 import { UserPlus, Trash2, Edit2, Shield, Filter } from 'lucide-react';
 
 export default function AdminPlayers({ players, teams, selectedTeamId }) {
     const [editingPlayer, setEditingPlayer] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
     const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
         team_id: selectedTeamId || (teams[0] ? teams[0].id : ''),
@@ -39,10 +41,15 @@ export default function AdminPlayers({ players, teams, selectedTeamId }) {
         });
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Yakin ingin menghapus pemain ini?')) {
-            destroy(`/admin/players/${id}`);
-        }
+    const handleDelete = (p) => {
+        setDeleteModal({ isOpen: true, id: p.id, name: p.name });
+    };
+
+    const confirmDeletePlayer = () => {
+        if (!deleteModal.id) return;
+        destroy(`/admin/players/${deleteModal.id}`, {
+            onSuccess: () => setDeleteModal({ isOpen: false, id: null, name: '' })
+        });
     };
 
     const handleFilterTeam = (teamId) => {
@@ -181,8 +188,9 @@ export default function AdminPlayers({ players, teams, selectedTeamId }) {
                                         <Edit2 className="w-4 h-4" />
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(p.id)}
+                                        onClick={() => handleDelete(p)}
                                         className="p-2 text-red-500 bg-white border border-gray-200 rounded-xl transition-colors"
+                                        title="Hapus Pemain"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -220,12 +228,14 @@ export default function AdminPlayers({ players, teams, selectedTeamId }) {
                                             <button
                                                 onClick={() => handleEdit(p)}
                                                 className="p-1.5 text-brand-500 hover:bg-brand-50 rounded-lg transition-colors"
+                                                title="Edit Pemain"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(p.id)}
+                                                onClick={() => handleDelete(p)}
                                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Hapus Pemain"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -238,6 +248,16 @@ export default function AdminPlayers({ players, teams, selectedTeamId }) {
                 </div>
 
             </div>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Hapus Pemain"
+                message={`Apakah Anda yakin ingin menghapus pemain "${deleteModal.name}"? Data statistik gol dan kartu pemain ini akan terhapus.`}
+                confirmText="Ya, Hapus Pemain"
+                onConfirm={confirmDeletePlayer}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+            />
         </AdminLayout>
     );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import {
     Shuffle, Users, CheckCircle, Clock, Plus, Trash2, Filter,
@@ -22,6 +23,7 @@ export default function Index({ registrants = [], competitions = [], teams = [],
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [assigningId, setAssigningId] = useState(null);
     const [selectedTeamToAssign, setSelectedTeamToAssign] = useState('');
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
     // ROULETTE / DRAFT STATE
     const [showRouletteModal, setShowRouletteModal] = useState(false);
@@ -66,9 +68,14 @@ export default function Index({ registrants = [], competitions = [], teams = [],
     };
 
     const handleDelete = (id, name) => {
-        if (confirm(`Yakin ingin menghapus pendaftar "${name}"?`)) {
-            router.delete(`/admin/registrants/${id}`);
-        }
+        setDeleteModal({ isOpen: true, id, name });
+    };
+
+    const confirmDeleteRegistrant = () => {
+        if (!deleteModal.id) return;
+        router.delete(`/admin/registrants/${deleteModal.id}`, {
+            onSuccess: () => setDeleteModal({ isOpen: false, id: null, name: '' })
+        });
     };
 
     const handleToggleStatus = (registrant) => {
@@ -1087,6 +1094,16 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                     </motion.div>
                 </div>
             )}
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Hapus Data Pendaftar"
+                message={`Apakah Anda yakin ingin menghapus pendaftar "${deleteModal.name}"? Data pemain ini akan dihapus permanen.`}
+                confirmText="Ya, Hapus Pendaftar"
+                onConfirm={confirmDeleteRegistrant}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+            />
         </AdminLayout>
     );
 }

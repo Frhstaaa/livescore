@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
 import { Trophy, Plus, Trash2, Edit2, CheckCircle2, Clock, Users, X, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +9,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
     const [editingComp, setEditingComp] = useState(null);
     const [teamModalComp, setTeamModalComp] = useState(null);
     const [selectedTeamIds, setSelectedTeamIds] = useState([]);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
     const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
         name: '',
@@ -83,10 +85,15 @@ export default function AdminCompetitions({ competitions, allTeams }) {
         router.post(`/admin/competitions/${id}/active`);
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Yakin ingin menghapus kompetisi ini?')) {
-            destroy(`/admin/competitions/${id}`);
-        }
+    const handleDelete = (comp) => {
+        setDeleteModal({ isOpen: true, id: comp.id, name: comp.name });
+    };
+
+    const confirmDeleteComp = () => {
+        if (!deleteModal.id) return;
+        destroy(`/admin/competitions/${deleteModal.id}`, {
+            onSuccess: () => setDeleteModal({ isOpen: false, id: null, name: '' })
+        });
     };
 
     return (
@@ -291,8 +298,8 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                             <span>Edit</span>
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(c.id)}
-                                            className="px-3 py-1.5 bg-red-50 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                            onClick={() => handleDelete(c)}
+                                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1 transition-colors"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                             <span>Hapus</span>
@@ -375,7 +382,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(c.id)}
+                                                    onClick={() => handleDelete(c)}
                                                     className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Hapus Turnamen"
                                                 >
@@ -481,6 +488,16 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Hapus Turnamen / Kompetisi"
+                message={`Apakah Anda yakin ingin menghapus turnamen "${deleteModal.name}"? Semua data jadwal pertandingan, klasemen, dan statistik terkait turnamen ini akan ikut terhapus.`}
+                confirmText="Ya, Hapus Turnamen"
+                onConfirm={confirmDeleteComp}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+            />
         </AdminLayout>
     );
 }

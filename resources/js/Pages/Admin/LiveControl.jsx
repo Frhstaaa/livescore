@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { router, Link } from '@inertiajs/react';
 import { Play, Pause, CheckCircle2, Flame, Award, Plus, Trash2, ShieldAlert, Clock, RefreshCw, Eye, ExternalLink, Smartphone, Timer } from 'lucide-react';
 import LiveTimer from '@/Components/LiveTimer';
@@ -9,6 +10,7 @@ export default function LiveControl({ matches, selectedMatch }) {
     const [eventType, setEventType] = useState('goal');
     const [playerId, setPlayerId] = useState('');
     const [relatedPlayerId, setRelatedPlayerId] = useState('');
+    const [deleteEventModal, setDeleteEventModal] = useState({ isOpen: false, id: null, desc: '' });
     
     const [isTimerRunning, setIsTimerRunning] = useState(selectedMatch?.status === 'live');
 
@@ -111,11 +113,15 @@ export default function LiveControl({ matches, selectedMatch }) {
 
     // Delete / Cancel Live Event & Auto Adjust Score
     const handleDeleteEvent = (eventId, eventDesc) => {
-        if (confirm(`Apakah Anda yakin ingin membatalkan kejadian "${eventDesc}"? Skor pertandingan akan otomatis disesuaikan.`)) {
-            router.delete(`/admin/live/event/${eventId}`, {
-                preserveScroll: true,
-            });
-        }
+        setDeleteEventModal({ isOpen: true, id: eventId, desc: eventDesc });
+    };
+
+    const confirmCancelEvent = () => {
+        if (!deleteEventModal.id) return;
+        router.delete(`/admin/live/event/${deleteEventModal.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setDeleteEventModal({ isOpen: false, id: null, desc: '' })
+        });
     };
 
     const teamPlayers = eventTeamId == selectedMatch?.home_team_id
@@ -653,6 +659,17 @@ export default function LiveControl({ matches, selectedMatch }) {
                 )}
 
             </div>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteEventModal.isOpen}
+                title="Batalkan Kejadian Pertandingan"
+                message={`Apakah Anda yakin ingin membatalkan kejadian "${deleteEventModal.desc}"? Skor pertandingan akan otomatis disesuaikan secara real-time.`}
+                confirmText="Ya, Batalkan Kejadian"
+                type="warning"
+                onConfirm={confirmCancelEvent}
+                onClose={() => setDeleteEventModal({ isOpen: false, id: null, desc: '' })}
+            />
         </AdminLayout>
     );
 }

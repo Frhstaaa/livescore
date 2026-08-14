@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm } from '@inertiajs/react';
 import { Calendar, Plus, Trash2, Clock, MapPin, Radio } from 'lucide-react';
 
 export default function AdminMatches({ matches, competitions, teams }) {
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, desc: '' });
+
     const { data, setData, post, delete: destroy, reset, errors } = useForm({
         competition_id: competitions[0] ? competitions[0].id : '',
         home_team_id: teams[0] ? teams[0].id : '',
@@ -21,10 +24,16 @@ export default function AdminMatches({ matches, competitions, teams }) {
         });
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Yakin ingin menghapus jadwal match ini?')) {
-            destroy(`/admin/matches/${id}`);
-        }
+    const handleDelete = (m) => {
+        const desc = `${m.home_team?.name || 'Home'} vs ${m.away_team?.name || 'Away'}`;
+        setDeleteModal({ isOpen: true, id: m.id, desc });
+    };
+
+    const confirmDeleteMatch = () => {
+        if (!deleteModal.id) return;
+        destroy(`/admin/matches/${deleteModal.id}`, {
+            onSuccess: () => setDeleteModal({ isOpen: false, id: null, desc: '' })
+        });
     };
 
     return (
@@ -155,8 +164,8 @@ export default function AdminMatches({ matches, competitions, teams }) {
                                 <div className="flex items-center justify-between text-[11px] text-gray-500 font-semibold pt-2 border-t border-gray-200/60">
                                     <span>⏱️ {new Date(m.match_date).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</span>
                                     <button
-                                        onClick={() => handleDelete(m.id)}
-                                        className="px-2.5 py-1 bg-red-50 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        onClick={() => handleDelete(m)}
+                                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1 transition-colors"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                         <span>Hapus</span>
@@ -205,8 +214,9 @@ export default function AdminMatches({ matches, competitions, teams }) {
                                         </td>
                                         <td className="py-3 px-4 text-right space-x-2">
                                             <button
-                                                onClick={() => handleDelete(m.id)}
+                                                onClick={() => handleDelete(m)}
                                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Hapus Jadwal Match"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -219,6 +229,16 @@ export default function AdminMatches({ matches, competitions, teams }) {
                 </div>
 
             </div>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Hapus Jadwal Pertandingan"
+                message={`Apakah Anda yakin ingin menghapus jadwal pertandingan "${deleteModal.desc}"? Seluruh data event dan live control match ini akan ikut terhapus.`}
+                confirmText="Ya, Hapus Match"
+                onConfirm={confirmDeleteMatch}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, desc: '' })}
+            />
         </AdminLayout>
     );
 }

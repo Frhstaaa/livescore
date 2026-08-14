@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
 import { Newspaper, Plus, Trash2, Edit2, Sparkles, Image as ImageIcon, Eye, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function AdminEvents({ events }) {
     const [editingEvent, setEditingEvent] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, title: '' });
 
     const form = useForm({
         title: '',
@@ -41,10 +43,15 @@ export default function AdminEvents({ events }) {
         });
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Yakin ingin menghapus postingan event ini?')) {
-            router.delete(`/admin/events/${id}`);
-        }
+    const handleDelete = (ev) => {
+        setDeleteModal({ isOpen: true, id: ev.id, title: ev.title });
+    };
+
+    const confirmDeleteEvent = () => {
+        if (!deleteModal.id) return;
+        router.delete(`/admin/events/${deleteModal.id}`, {
+            onSuccess: () => setDeleteModal({ isOpen: false, id: null, title: '' })
+        });
     };
 
     const cancelEdit = () => {
@@ -199,7 +206,7 @@ export default function AdminEvents({ events }) {
                                             <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(ev.id)}
+                                            onClick={() => handleDelete(ev)}
                                             className="p-2 text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded-xl transition-colors"
                                             title="Hapus Post"
                                         >
@@ -216,6 +223,16 @@ export default function AdminEvents({ events }) {
                     </div>
                 </div>
             </div>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title="Hapus Postingan Event"
+                message={`Apakah Anda yakin ingin menghapus artikel "${deleteModal.title || 'ini'}"? Postingan ini akan dihapus dari halaman publik.`}
+                confirmText="Ya, Hapus Post"
+                onConfirm={confirmDeleteEvent}
+                onClose={() => setDeleteModal({ isOpen: false, id: null, title: '' })}
+            />
         </AdminLayout>
     );
 }

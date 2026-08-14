@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
 import { Plus, Trash2, Edit2, Shield, UploadCloud, Image as ImageIcon, Users, X, UserPlus, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,10 +78,10 @@ export default function AdminTeams({ teams }) {
         });
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Yakin ingin menghapus tim ini?')) {
-            destroy(`/admin/teams/${id}`);
-        }
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: 'team', id: null, name: '' });
+
+    const handleDelete = (team) => {
+        setDeleteModal({ isOpen: true, type: 'team', id: team.id, name: team.name });
     };
 
     const handleOpenSquadModal = (team) => {
@@ -132,14 +133,24 @@ export default function AdminTeams({ teams }) {
         }
     };
 
-    const handleDeletePlayer = (playerId) => {
-        if (confirm('Yakin ingin menghapus pemain ini dari skuad?')) {
-            router.delete(`/admin/players/${playerId}`, {
+    const handleDeletePlayer = (player) => {
+        setDeleteModal({ isOpen: true, type: 'player', id: player.id, name: player.name });
+    };
+
+    const confirmDeleteAction = () => {
+        if (!deleteModal.id) return;
+        if (deleteModal.type === 'team') {
+            destroy(`/admin/teams/${deleteModal.id}`, {
+                onSuccess: () => setDeleteModal({ isOpen: false, type: 'team', id: null, name: '' })
+            });
+        } else {
+            router.delete(`/admin/players/${deleteModal.id}`, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    if (editingPlayer && editingPlayer.id === playerId) {
+                    if (editingPlayer && editingPlayer.id === deleteModal.id) {
                         setEditingPlayer(null);
                     }
+                    setDeleteModal({ isOpen: false, type: 'player', id: null, name: '' });
                 }
             });
         }
@@ -367,7 +378,7 @@ export default function AdminTeams({ teams }) {
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(t.id)}
+                                                onClick={() => handleDelete(t)}
                                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Hapus Tim"
                                             >
@@ -526,7 +537,7 @@ export default function AdminTeams({ teams }) {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeletePlayer(player.id)}
+                                                    onClick={() => handleDeletePlayer(player)}
                                                     className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Hapus Pemain dari Skuad"
                                                 >
@@ -552,6 +563,19 @@ export default function AdminTeams({ teams }) {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Custom Styled Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title={deleteModal.type === 'team' ? 'Hapus Tim Futsal' : 'Hapus Pemain dari Skuad'}
+                message={deleteModal.type === 'team'
+                    ? `Apakah Anda yakin ingin menghapus tim "${deleteModal.name}"? Seluruh pemain di dalam tim ini akan terhapus.`
+                    : `Apakah Anda yakin ingin menghapus "${deleteModal.name}" dari skuad tim ini?`
+                }
+                confirmText={deleteModal.type === 'team' ? 'Ya, Hapus Tim' : 'Ya, Hapus Pemain'}
+                onConfirm={confirmDeleteAction}
+                onClose={() => setDeleteModal({ isOpen: false, type: 'team', id: null, name: '' })}
+            />
         </AdminLayout>
     );
 }
