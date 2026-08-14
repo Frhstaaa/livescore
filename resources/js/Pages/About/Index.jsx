@@ -1,6 +1,7 @@
 import React from 'react';
 import MobileLayout from '@/Layouts/MobileLayout';
-import { Info, ShieldCheck, ExternalLink, MessageCircle, MapPin } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { Info, ShieldCheck, ExternalLink, MessageCircle, MapPin, UserPlus, ArrowRight } from 'lucide-react';
 
 export default function AboutIndex({ sponsors, competition }) {
     return (
@@ -38,6 +39,26 @@ export default function AboutIndex({ sponsors, competition }) {
                         <span>Official Partner</span>
                     </div>
                 </div>
+            </div>
+
+            {/* Registration CTA Card */}
+            <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg mb-6 flex items-center justify-between">
+                <div className="flex items-center space-x-3.5">
+                    <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                        <UserPlus className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-black">Pendaftaran Pemain</h4>
+                        <p className="text-[11px] text-white/90 font-medium">Buka untuk pemain futsal individu.</p>
+                    </div>
+                </div>
+                <Link
+                    href="/register"
+                    className="inline-flex items-center space-x-1 px-4 py-2 rounded-full bg-white text-brand-600 font-bold text-xs shadow-md hover:bg-orange-50 transition-all flex-shrink-0"
+                >
+                    <span>Daftar</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
             </div>
 
             {/* Main Sponsor Highlight */}

@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\PlayerController as AdminPlayerController;
 use App\Http\Controllers\Admin\SponsorController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\RegistrationController as AdminRegistrationController;
+use App\Http\Controllers\Public\RegistrationController as PublicRegistrationController;
 use App\Http\Controllers\Public\AboutController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\FavoriteController;
@@ -20,10 +22,10 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Public Routes (Protected against HTTP Flood DDoS: 60 req/min)
+| Public Routes (Generous Throttle: 300 req/min for Realtime Live Updates)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['throttle:60,1'])->group(function () {
+Route::middleware(['throttle:300,1'])->group(function () {
     Route::get('/', [LivescoreController::class, 'index'])->name('public.index');
     Route::get('/match/{id}', [MatchDetailController::class, 'show'])->name('public.match.detail');
     Route::get('/players', [PlayerController::class, 'index'])->name('public.players');
@@ -32,15 +34,18 @@ Route::middleware(['throttle:60,1'])->group(function () {
     Route::get('/events', [PublicEventController::class, 'index'])->name('public.events');
     Route::post('/events/{id}/like', [PublicEventController::class, 'like'])->name('public.events.like');
     Route::get('/about', [AboutController::class, 'index'])->name('public.about');
+    
+    Route::get('/register', [PublicRegistrationController::class, 'index'])->name('public.register');
+    Route::post('/register', [PublicRegistrationController::class, 'store'])->name('public.register.store');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Admin Authentication Routes (Protected against Brute-Force: 5 attempts/min)
+| Admin Authentication Routes (Protected against Brute-Force: 30 attempts/min)
 |--------------------------------------------------------------------------
 */
 Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login');
-Route::post('/admin/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/admin/login', [AuthController::class, 'login'])->middleware('throttle:30,1');
 Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
 
 /*
@@ -80,6 +85,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/live', [LiveControlController::class, 'index'])->name('live.index');
     Route::post('/live/{id}/status', [LiveControlController::class, 'updateStatus'])->name('live.status');
     Route::post('/live/{id}/event', [LiveControlController::class, 'addEvent'])->name('live.event');
+    Route::delete('/live/event/{id}', [LiveControlController::class, 'deleteEvent'])->name('live.event.delete');
     Route::post('/live/{id}/motm', [LiveControlController::class, 'setMotm'])->name('live.motm');
 
     // Events Management
@@ -94,4 +100,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/sponsors/about', [SponsorController::class, 'updateAbout'])->name('sponsors.about');
     Route::put('/sponsors/{id}', [SponsorController::class, 'update'])->name('sponsors.update');
     Route::delete('/sponsors/{id}', [SponsorController::class, 'destroy'])->name('sponsors.destroy');
+
+    // Registrants
+    Route::get('/registrants', [AdminRegistrationController::class, 'index'])->name('registrants.index');
+    Route::post('/registrants/randomize', [AdminRegistrationController::class, 'randomize'])->name('registrants.randomize');
 });

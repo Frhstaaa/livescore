@@ -23,21 +23,26 @@ class SecurityHeaders
             header_remove('X-Powered-By');
         }
 
-        // Apply strict security headers
-        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-XSS-Protection', '1; mode=block');
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        // In local development, allow iframe previewing / simulators
+        if (app()->isLocal()) {
+            $response->headers->remove('X-Frame-Options');
+            $response->headers->remove('Content-Security-Policy');
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            $response->headers->set('Access-Control-Allow-Headers', '*');
+        } else {
+            // Production Security Headers
+            $response->headers->set('X-Content-Type-Options', 'nosniff');
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+            $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-        // Content Security Policy (Vite dev server compatible)
-        if (!app()->isLocal()) {
-            $csp = "default-src 'self'; " .
-                   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
-                   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
-                   "font-src 'self' https://fonts.gstatic.com; " .
+            $csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http:; " .
+                   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; " .
+                   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https: http:; " .
+                   "font-src 'self' data: https://fonts.gstatic.com https: http:; " .
                    "img-src 'self' data: https: http: blob:; " .
-                   "connect-src 'self' ws: wss:;";
+                   "connect-src 'self' https: http: ws: wss:; " .
+                   "frame-ancestors *;";
             $response->headers->set('Content-Security-Policy', $csp);
         }
 

@@ -109,6 +109,15 @@ export default function LiveControl({ matches, selectedMatch }) {
         }, { preserveScroll: true });
     };
 
+    // Delete / Cancel Live Event & Auto Adjust Score
+    const handleDeleteEvent = (eventId, eventDesc) => {
+        if (confirm(`Apakah Anda yakin ingin membatalkan kejadian "${eventDesc}"? Skor pertandingan akan otomatis disesuaikan.`)) {
+            router.delete(`/admin/live/event/${eventId}`, {
+                preserveScroll: true,
+            });
+        }
+    };
+
     const teamPlayers = eventTeamId == selectedMatch?.home_team_id
         ? selectedMatch?.home_team?.players
         : selectedMatch?.away_team?.players;
@@ -248,9 +257,9 @@ export default function LiveControl({ matches, selectedMatch }) {
                                     </div>
                                 )}
 
-                                {/* REALTIME LIVE TIMELINE EVENTS PREVIEW */}
+                                {/* REALTIME LIVE TIMELINE EVENTS PREVIEW WITH INSTANT CANCEL BUTTON */}
                                 {selectedMatch.events && selectedMatch.events.length > 0 && (
-                                    <div className="mt-3 pt-2 border-t border-gray-100 space-y-1 max-h-[140px] overflow-y-auto no-scrollbar">
+                                    <div className="mt-3 pt-2 border-t border-gray-100 space-y-1.5 max-h-[160px] overflow-y-auto no-scrollbar">
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">
                                                 ⚡ Kejadian Live ({selectedMatch.events.length})
@@ -258,26 +267,45 @@ export default function LiveControl({ matches, selectedMatch }) {
                                             <span className="text-[9px] font-bold text-brand-500 animate-pulse">Realtime Stream</span>
                                         </div>
 
-                                        {selectedMatch.events.slice().reverse().map((ev) => (
-                                            <div key={ev.id} className="flex items-center justify-between bg-gray-50 p-1.5 rounded-lg text-[10px] border border-gray-100">
-                                                <div className="flex items-center space-x-1.5 min-w-0">
-                                                    <span className="font-black text-brand-600 w-5">{ev.minute}'</span>
-                                                    <span className="font-extrabold text-gray-900 shrink-0">
-                                                        {ev.event_type === 'goal' && '⚽ GOL'}
-                                                        {ev.event_type === 'yellow_card' && '🟨 Kartu Kuning'}
-                                                        {ev.event_type === 'red_card' && '🟥 Kartu Merah'}
-                                                        {ev.event_type === 'substitution_in' && '🔄 Substitusi'}
-                                                        {ev.event_type === 'own_goal' && '⚠️ Own Goal'}
-                                                    </span>
-                                                    <span className="text-gray-600 font-semibold truncate max-w-[90px]">
-                                                        {ev.player?.name || ev.team?.short_name}
-                                                    </span>
+                                        {selectedMatch.events.slice().reverse().map((ev) => {
+                                            const evLabel = ev.event_type === 'goal' ? 'Gol' :
+                                                            ev.event_type === 'yellow_card' ? 'Kartu Kuning' :
+                                                            ev.event_type === 'red_card' ? 'Kartu Merah' :
+                                                            ev.event_type === 'own_goal' ? 'Own Goal' : 'Substitusi';
+                                            const playerOrTeam = ev.player?.name || ev.team?.short_name || 'Pemain';
+
+                                            return (
+                                                <div key={ev.id} className="flex items-center justify-between bg-gray-50/90 hover:bg-red-50/50 p-1.5 rounded-lg text-[10px] border border-gray-100 transition-colors group">
+                                                    <div className="flex items-center space-x-1.5 min-w-0 pr-1">
+                                                        <span className="font-black text-brand-600 w-5">{ev.minute}'</span>
+                                                        <span className="font-extrabold text-gray-900 shrink-0">
+                                                            {ev.event_type === 'goal' && '⚽ GOL'}
+                                                            {ev.event_type === 'yellow_card' && '🟨 Kartu'}
+                                                            {ev.event_type === 'red_card' && '🟥 Kartu'}
+                                                            {ev.event_type === 'substitution_in' && '🔄 Sub'}
+                                                            {ev.event_type === 'own_goal' && '⚠️ OG'}
+                                                        </span>
+                                                        <span className="text-gray-600 font-semibold truncate max-w-[75px]">
+                                                            {playerOrTeam}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center space-x-1 shrink-0">
+                                                        <span className="font-bold text-[9px] text-gray-400 uppercase">
+                                                            {ev.team?.short_name}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteEvent(ev.id, `${evLabel} ${playerOrTeam} (${ev.minute}')`)}
+                                                            title="Batalkan kejadian ini (skor otomatis disesuaikan)"
+                                                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                                                        >
+                                                            <Trash2 className="w-3 h-3 text-red-500" />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <span className="font-bold text-[9px] text-gray-400 uppercase shrink-0">
-                                                    {ev.team?.short_name}
-                                                </span>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -466,12 +494,104 @@ export default function LiveControl({ matches, selectedMatch }) {
                                 <div className="md:col-span-2 pt-2">
                                     <button
                                         type="submit"
-                                        className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-md text-xs"
+                                        className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-md text-xs transition-colors"
                                     >
                                         + Simpan Kejadian Live & Broadcast Realtime
                                     </button>
                                 </div>
                             </form>
+                        </div>
+
+                        {/* RIWAYAT LENGKAP & PEMBATALAN KEJADIAN (AUTO RE-CALCULATE SCORE) */}
+                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-base font-bold text-gray-900 flex items-center">
+                                    <Flame className="w-5 h-5 text-brand-500 mr-2" />
+                                    Riwayat Kejadian & Batalkan Skor ({selectedMatch.events?.length || 0})
+                                </h3>
+                                <span className="text-[11px] font-semibold text-gray-400">
+                                    Skor otomatis disesuaikan saat kejadian dibatalkan
+                                </span>
+                            </div>
+
+                            {selectedMatch.events && selectedMatch.events.length > 0 ? (
+                                <div className="space-y-2">
+                                    {selectedMatch.events.slice().reverse().map((ev) => {
+                                        const isGoal = ev.event_type === 'goal';
+                                        const isOwnGoal = ev.event_type === 'own_goal';
+                                        const isYellow = ev.event_type === 'yellow_card';
+                                        const isRed = ev.event_type === 'red_card';
+                                        const isSub = ev.event_type === 'substitution_in';
+
+                                        const evTitle = isGoal ? 'Gol (+1 Skor)' :
+                                                        isOwnGoal ? 'Gol Bunuh Diri (Skor Lawan +1)' :
+                                                        isYellow ? 'Kartu Kuning' :
+                                                        isRed ? 'Kartu Merah' : 'Substitusi';
+                                        const playerName = ev.player?.name || '-';
+                                        const teamName = ev.team?.name || 'Tim';
+
+                                        return (
+                                            <div
+                                                key={ev.id}
+                                                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                                    isGoal ? 'bg-emerald-50/70 border-emerald-200/70' :
+                                                    isOwnGoal ? 'bg-red-50/70 border-red-200/70' :
+                                                    isYellow ? 'bg-amber-50/70 border-amber-200/70' :
+                                                    isRed ? 'bg-red-50/70 border-red-200/70' :
+                                                    'bg-gray-50 border-gray-100'
+                                                }`}
+                                            >
+                                                <div className="flex items-center space-x-3 min-w-0 pr-2">
+                                                    <span className={`w-8 h-8 rounded-lg font-black text-xs flex items-center justify-center shrink-0 shadow-sm ${
+                                                        isGoal ? 'bg-emerald-600 text-white' :
+                                                        isOwnGoal ? 'bg-red-600 text-white' :
+                                                        isYellow ? 'bg-amber-500 text-white' :
+                                                        isRed ? 'bg-red-600 text-white' :
+                                                        'bg-gray-700 text-white'
+                                                    }`}>
+                                                        {ev.minute}'
+                                                    </span>
+
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="font-black text-xs text-gray-900">
+                                                                {isGoal && '⚽ '}
+                                                                {isOwnGoal && '⚠️ '}
+                                                                {isYellow && '🟨 '}
+                                                                {isRed && '🟥 '}
+                                                                {isSub && '🔄 '}
+                                                                {evTitle}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/80 border border-gray-200 text-gray-700 uppercase">
+                                                                {teamName}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-600 font-semibold truncate mt-0.5">
+                                                            Pemain: <strong className="text-gray-900">{playerName}</strong>
+                                                            {ev.related_player && (
+                                                                <span className="text-gray-500 ml-1">(Assist: {ev.related_player.name})</span>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteEvent(ev.id, `${evTitle} oleh ${playerName} di menit ${ev.minute}'`)}
+                                                    className="px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all shadow-sm shrink-0"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                    <span>Batalkan</span>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 bg-gray-50/60 rounded-xl border border-dashed border-gray-200 text-gray-400">
+                                    <p className="text-xs font-semibold">Belum ada kejadian tercatat pada pertandingan ini.</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* MOTM Rating Setter */}

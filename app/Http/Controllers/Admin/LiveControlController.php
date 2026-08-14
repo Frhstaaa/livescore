@@ -76,4 +76,10 @@ class LiveControlController extends Controller
         $this->liveService->setManOfTheMatch($matchId, $validated['player_id'], $validated['rating']);
         return back()->with('message', 'Man of the Match berhasil diperbarui');
     }
+
+    public function deleteEvent(int $id)
+    {
+        $this->liveService->deleteEvent($id);
+        return back()->with('message', 'Kejadian berhasil dibatalkan dan skor otomatis disesuaikan.');
+    }
 }

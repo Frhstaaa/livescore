@@ -1,18 +1,23 @@
 import React, { useEffect } from 'react';
-import { router } from '@inertiajs/react';
+import { router, Link } from '@inertiajs/react';
 import MobileLayout from '@/Layouts/MobileLayout';
 import CategoryChips from '@/Components/CategoryChips';
 import DateSelector from '@/Components/DateSelector';
 import MatchCard from '@/Components/MatchCard';
-import { ChevronRight, CalendarX } from 'lucide-react';
+import { ChevronRight, CalendarX, UserPlus } from 'lucide-react';
 
 export default function LivescoreIndex({ matches, selectedDate, competitions, selectedCompetitionId }) {
 
-    // Auto refresh data every 5 seconds for live updates
+    // Auto refresh data every 2 seconds silently in the background
     useEffect(() => {
         const interval = setInterval(() => {
-            router.reload({ preserveScroll: true, preserveState: true });
-        }, 5000);
+            router.reload({
+                only: ['matches'],
+                preserveScroll: true,
+                preserveState: true,
+                showProgress: false,
+            });
+        }, 2000);
         return () => clearInterval(interval);
     }, []);
 
@@ -28,6 +33,28 @@ export default function LivescoreIndex({ matches, selectedDate, competitions, se
         <MobileLayout>
             {/* Category Chips Horizontal Slider */}
             <CategoryChips competitions={competitions} selectedId={selectedCompetitionId} />
+
+            {/* Registration CTA Banner */}
+            <Link
+                href="/register"
+                className="mb-3 block rounded-2xl bg-gradient-to-r from-brand-600 via-brand-500 to-amber-500 p-3.5 text-white shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
+            >
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                            <UserPlus className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <div className="flex items-center space-x-1.5">
+                                <span className="text-xs font-black">Pendaftaran Pemain Baru</span>
+                                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-amber-300 text-amber-950 rounded-full">Buka</span>
+                            </div>
+                            <p className="text-[10px] text-white/90 mt-0.5 font-medium">Klik di sini untuk mengisi form pendaftaran individu</p>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-white/80 flex-shrink-0" />
+                </div>
+            </Link>
 
             {/* Date Selector Slider */}
             <DateSelector selectedDate={selectedDate} />

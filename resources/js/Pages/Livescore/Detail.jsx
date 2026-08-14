@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MobileLayout from '@/Layouts/MobileLayout';
 import { ArrowLeft, Flame, Award, Clock, ShieldCheck, Activity, Users, FileText, ChevronRight } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import LiveTimer from '@/Components/LiveTimer';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MatchDetail({ match }) {
     const [activeTab, setActiveTab] = useState('matchday'); // 'matchday' | 'events' | 'stats' | 'lineups' | 'motm'
+
+    // Auto-refresh match details every 2 seconds silently in the background
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['match', 'h2h'],
+                preserveScroll: true,
+                preserveState: true,
+                showProgress: false,
+            });
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
 
     const isLive = match.status === 'live' || match.status === 'half_time';
     const isFullTime = match.status === 'full_time';

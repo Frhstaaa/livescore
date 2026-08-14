@@ -75,6 +75,53 @@ class LiveControlService
         });
     }
 
+    public function deleteEvent(int $eventId): MatchModel
+    {
+        return DB::transaction(function () use ($eventId) {
+            $event = MatchEvent::findOrFail($eventId);
+            $matchId = $event->match_id;
+            $playerId = $event->player_id;
+
+            // Delete the event record
+            $event->delete();
+
+            $match = MatchModel::findOrFail($matchId);
+
+            // Automatically recalculate scores based on remaining events
+            $homeGoals = MatchEvent::where('match_id', $matchId)
+                ->where(function ($q) use ($match) {
+                    $q->where(function ($sub) use ($match) {
+                        $sub->where('event_type', 'goal')->where('team_id', $match->home_team_id);
+                    })->orWhere(function ($sub) use ($match) {
+                        $sub->where('event_type', 'own_goal')->where('team_id', $match->away_team_id);
+                    });
+                })->count();
+
+            $awayGoals = MatchEvent::where('match_id', $matchId)
+                ->where(function ($q) use ($match) {
+                    $q->where(function ($sub) use ($match) {
+                        $sub->where('event_type', 'goal')->where('team_id', $match->away_team_id);
+                    })->orWhere(function ($sub) use ($match) {
+                        $sub->where('event_type', 'own_goal')->where('team_id', $match->home_team_id);
+                    });
+                })->count();
+
+            $match->home_score = $homeGoals;
+            $match->away_score = $awayGoals;
+            $match->save();
+
+            // If match is finished, update standings & leaderboard
+            if ($match->status === 'full_time') {
+                $this->standingRepo->recalculateStandings($match->competition_id);
+                if ($playerId) {
+                    $this->leaderboardRepo->updatePlayerStats($playerId, $match->competition_id);
+                }
+            }
+
+            return $match;
+        });
+    }
+
     public function setManOfTheMatch(int $matchId, int $playerId, float $rating): MatchModel
     {
         $match = MatchModel::findOrFail($matchId);
