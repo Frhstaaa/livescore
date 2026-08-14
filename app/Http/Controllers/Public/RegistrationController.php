@@ -13,7 +13,9 @@ class RegistrationController extends Controller
 {
     public function index()
     {
-        $competitions = Competition::where('is_active', true)->get(['id', 'name', 'season', 'type']);
+        $competitions = Competition::orderBy('is_active', 'desc')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'season', 'type', 'is_active']);
 
         return Inertia::render('Public/Register', [
             'competitions' => $competitions

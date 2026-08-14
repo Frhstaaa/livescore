@@ -19,6 +19,12 @@ export default function Register({ competitions = [] }) {
         competition_id: competitions.length > 0 ? competitions[0].id : '',
     });
 
+    useEffect(() => {
+        if (!data.competition_id && competitions.length > 0) {
+            setData('competition_id', competitions[0].id);
+        }
+    }, [competitions]);
+
     // Close select dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
