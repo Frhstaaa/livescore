@@ -8,6 +8,8 @@ export default function Register({ competitions = [] }) {
     const { flash } = usePage().props;
     const [copied, setCopied] = useState(false);
     const [selectOpen, setSelectOpen] = useState(false);
+    const [isSuccessModal, setIsSuccessModal] = useState(false);
+    const [lastRegisteredName, setLastRegisteredName] = useState('');
     const selectRef = useRef(null);
     
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -42,9 +44,14 @@ export default function Register({ competitions = [] }) {
 
     const submit = (e) => {
         e.preventDefault();
+        const submittedName = data.name;
         post('/register', {
             preserveScroll: true,
-            onSuccess: () => reset('name', 'phone'),
+            onSuccess: () => {
+                setLastRegisteredName(submittedName);
+                setIsSuccessModal(true);
+                reset('name', 'phone');
+            },
         });
     };
 
@@ -110,21 +117,82 @@ export default function Register({ competitions = [] }) {
                     </div>
                 </div>
 
-                {/* Success Notification Alert */}
+                {/* Success Notification Banner */}
                 <AnimatePresence>
-                    {flash.success && (
+                    {(flash?.success || isSuccessModal) && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 flex items-start space-x-3 shadow-sm"
+                            className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 flex items-start space-x-3 shadow-md"
                         >
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                            <div className="text-xs">
-                                <h4 className="font-bold text-emerald-900 dark:text-emerald-200">Pendaftaran Berhasil!</h4>
-                                <p className="mt-0.5 leading-relaxed">{flash.success}</p>
+                            <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-xs flex-1">
+                                <h4 className="font-extrabold text-emerald-950 text-sm">Pendaftaran Berhasil Dikirim!</h4>
+                                <p className="mt-0.5 leading-relaxed text-emerald-800 font-medium">
+                                    {flash?.success || 'Data pemain Anda telah berhasil dicatat ke dalam sistem turnamen RS LIVASYA.'}
+                                </p>
                             </div>
                         </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Celebratory Success Modal Popup */}
+                <AnimatePresence>
+                    {isSuccessModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 text-center space-y-4 relative overflow-hidden"
+                            >
+                                {/* Background Accent Glow */}
+                                <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-100 rounded-full blur-2xl pointer-events-none" />
+                                <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-brand-100 rounded-full blur-2xl pointer-events-none" />
+
+                                <div className="relative z-10 space-y-3">
+                                    <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner ring-8 ring-emerald-50">
+                                        <CheckCircle2 className="w-10 h-10 animate-bounce" />
+                                    </div>
+
+                                    <div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                            Status: Terdaftar
+                                        </span>
+                                        <h3 className="text-lg font-black text-gray-900 mt-2">
+                                            Pendaftaran Berhasil!
+                                        </h3>
+                                        {lastRegisteredName && (
+                                            <p className="text-xs font-bold text-brand-600 mt-1">
+                                                Pemain: {lastRegisteredName}
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1.5 leading-relaxed font-medium">
+                                            Terima kasih! Data pendaftaran telah berhasil disimpan. Panitia turnamen RS LIVASYA akan mengacak dan mengelompokkan tim.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsSuccessModal(false)}
+                                            className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all active:scale-[0.98]"
+                                        >
+                                            + Daftarkan Pemain Lain
+                                        </button>
+                                        
+                                        <Link
+                                            href="/"
+                                            className="w-full block py-2.5 px-4 rounded-xl text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 transition-all text-center"
+                                        >
+                                            Kembali ke Beranda Livescore
+                                        </Link>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
 
