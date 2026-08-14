@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\ImageHelper;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,10 +25,17 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'content' => 'required|string',
-            'image_url' => 'nullable|url|max:1000',
+            'image_url' => 'nullable|string|max:1000',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'author_name' => 'nullable|string|max:255',
             'is_published' => 'boolean',
         ]);
+
+        if ($request->hasFile('image_file')) {
+            $validated['image_url'] = ImageHelper::convertToWebp($request->file('image_file'), 'uploads/events');
+        }
+
+        unset($validated['image_file']);
 
         if (empty($validated['author_name'])) {
             $validated['author_name'] = 'Panitia Turnamen Livasya';
@@ -35,7 +43,7 @@ class EventController extends Controller
 
         Event::create($validated);
 
-        return redirect()->back()->with('success', 'Posting Event berhasil dibuat!');
+        return redirect()->back()->with('success', 'Posting Event & Foto berhasil diterbitkan!');
     }
 
     public function update(Request $request, int $id)
@@ -45,14 +53,21 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'content' => 'required|string',
-            'image_url' => 'nullable|url|max:1000',
+            'image_url' => 'nullable|string|max:1000',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'author_name' => 'nullable|string|max:255',
             'is_published' => 'boolean',
         ]);
 
+        if ($request->hasFile('image_file')) {
+            $validated['image_url'] = ImageHelper::convertToWebp($request->file('image_file'), 'uploads/events');
+        }
+
+        unset($validated['image_file']);
+
         $event->update($validated);
 
-        return redirect()->back()->with('success', 'Posting Event berhasil diperbarui!');
+        return redirect()->back()->with('success', 'Posting Event & Foto berhasil diperbarui!');
     }
 
     public function destroy(int $id)
