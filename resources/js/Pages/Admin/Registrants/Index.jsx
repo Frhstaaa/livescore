@@ -1,23 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Shuffle, Users, CheckCircle, Clock, Plus, Trash2, Filter, Sparkles, UserCheck, Shield, Award, Phone, ArrowRight } from 'lucide-react';
+import {
+    Shuffle, Users, CheckCircle, Clock, Plus, Trash2, Filter,
+    Sparkles, UserCheck, Shield, Award, Phone, ArrowRight,
+    Play, FastForward, RotateCcw, Trophy, Check, Zap, X
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const TEAM_THEMES = [
+    { name: 'Tim Garuda', short: 'GAR', color: 'from-red-500 to-rose-600', border: 'border-red-300', bg: 'bg-red-50', text: 'text-red-700', badge: 'bg-red-100 text-red-800' },
+    { name: 'Tim Elang', short: 'ELG', color: 'from-blue-500 to-cyan-600', border: 'border-blue-300', bg: 'bg-blue-50', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-800' },
+    { name: 'Tim Rajawali', short: 'RJW', color: 'from-emerald-500 to-teal-600', border: 'border-emerald-300', bg: 'bg-emerald-50', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-800' },
+    { name: 'Tim Harimau', short: 'HRM', color: 'from-amber-500 to-orange-600', border: 'border-amber-300', bg: 'bg-amber-50', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-800' },
+    { name: 'Tim Singa', short: 'SNG', color: 'from-purple-500 to-indigo-600', border: 'border-purple-300', bg: 'bg-purple-50', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-800' },
+    { name: 'Tim Badak', short: 'BDK', color: 'from-zinc-600 to-slate-700', border: 'border-zinc-300', bg: 'bg-zinc-50', text: 'text-zinc-700', badge: 'bg-zinc-100 text-zinc-800' },
+];
 
 export default function Index({ registrants = [], competitions = [], teams = [], filters = {} }) {
     const { flash } = usePage().props;
-    const [showRandomizeModal, setShowRandomizeModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [assigningId, setAssigningId] = useState(null);
     const [selectedTeamToAssign, setSelectedTeamToAssign] = useState('');
 
-    const selectedCompId = filters.competition_id || (competitions.length > 0 ? competitions[0].id : '');
+    // ROULETTE / DRAFT STATE
+    const [showRouletteModal, setShowRouletteModal] = useState(false);
+    const [rouletteStage, setRouletteStage] = useState('setup'); // 'setup' | 'spinning' | 'finished'
+    const [teamCount, setTeamCount] = useState(2);
+    const [customTeamNames, setCustomTeamNames] = useState(['', '', '', '']);
+    const [draftQueue, setDraftQueue] = useState([]);
+    const [draftedTeams, setDraftedTeams] = useState([]);
+    const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
+    const [isSpinning, setIsSpinning] = useState(false);
+    const [rouletteActiveTeamIndex, setRouletteActiveTeamIndex] = useState(0);
+    const [autoSpin, setAutoSpin] = useState(false);
+    const [lastDraftedPlayer, setLastDraftedPlayer] = useState(null);
 
-    // Form for Randomizing
-    const { data: randData, setData: setRandData, post: postRandomize, processing: randProcessing, errors: randErrors } = useForm({
-        competition_id: selectedCompId,
-        teams_count: 2,
-    });
+    const spinTimerRef = useRef(null);
+    const autoSpinTimeoutRef = useRef(null);
+
+    const selectedCompId = filters.competition_id || (competitions.length > 0 ? competitions[0].id : '');
 
     // Form for Creating Manual Registrant
     const { data: createData, setData: setCreateData, post: postCreate, processing: createProcessing, errors: createErrors, reset: resetCreate } = useForm({
@@ -30,15 +52,7 @@ export default function Index({ registrants = [], competitions = [], teams = [],
     const handleFilterChange = (e) => {
         const compId = e.target.value;
         router.get('/admin/registrants', compId ? { competition_id: compId } : {}, { preserveState: true });
-        setRandData('competition_id', compId);
         setCreateData('competition_id', compId);
-    };
-
-    const handleRandomize = (e) => {
-        e.preventDefault();
-        postRandomize('/admin/registrants/randomize', {
-            onSuccess: () => setShowRandomizeModal(false),
-        });
     };
 
     const handleCreate = (e) => {
@@ -93,6 +107,179 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         FWD: { label: 'Forward', bg: 'bg-purple-50 text-purple-700 border-purple-200', icon: '🎯' },
     };
 
+    // ==========================================
+    // ROULETTE LOGIC & ANIMATION CONTROLS
+    // ==========================================
+    const openRoulette = () => {
+        const pool = pendingRegistrants.length >= 2 ? pendingRegistrants : registrants;
+        if (pool.length < 2) return;
+        
+        // Shuffle initial pool order
+        const shuffled = [...pool].sort(() => Math.random() - 0.5);
+        setDraftQueue(shuffled);
+        setCurrentDraftIndex(0);
+        setRouletteStage('setup');
+        setAutoSpin(false);
+        setLastDraftedPlayer(null);
+
+        // Prepare Initial Team Buckets
+        const count = Math.min(Math.max(2, teamCount), pool.length);
+        const initialTeams = Array.from({ length: count }, (_, idx) => {
+            const theme = TEAM_THEMES[idx % TEAM_THEMES.length];
+            return {
+                id: idx,
+                name: customTeamNames[idx] || theme.name,
+                short_name: theme.short,
+                theme: theme,
+                players: [],
+            };
+        });
+        setDraftedTeams(initialTeams);
+        setShowRouletteModal(true);
+    };
+
+    const startRouletteDraft = () => {
+        // Initialize teams based on selected teamCount
+        const count = Math.min(Math.max(2, teamCount), draftQueue.length);
+        const initialTeams = Array.from({ length: count }, (_, idx) => {
+            const theme = TEAM_THEMES[idx % TEAM_THEMES.length];
+            return {
+                id: idx,
+                name: customTeamNames[idx] || theme.name,
+                short_name: theme.short,
+                theme: theme,
+                players: [],
+            };
+        });
+        setDraftedTeams(initialTeams);
+        setCurrentDraftIndex(0);
+        setRouletteStage('spinning');
+        setLastDraftedPlayer(null);
+    };
+
+    // Single step spin for current player
+    const executeSpin = (queueIdx, currentTeams, isAuto = false) => {
+        if (queueIdx >= draftQueue.length || isSpinning) return;
+
+        setIsSpinning(true);
+        const player = draftQueue[queueIdx];
+        const numTeams = currentTeams.length;
+
+        // Balanced team selection (find teams with fewest players)
+        const minPlayers = Math.min(...currentTeams.map(t => t.players.length));
+        const eligibleTeams = currentTeams
+            .map((t, idx) => ({ idx, count: t.players.length }))
+            .filter(t => t.count === minPlayers)
+            .map(t => t.idx);
+        
+        const targetTeamIndex = eligibleTeams[Math.floor(Math.random() * eligibleTeams.length)];
+
+        // Rapid roulette animation cycle
+        let currentStep = 0;
+        const totalSteps = 16 + (targetTeamIndex % numTeams);
+        let speed = 50;
+
+        const animateCycle = () => {
+            currentStep++;
+            setRouletteActiveTeamIndex((prev) => (prev + 1) % numTeams);
+
+            if (currentStep < totalSteps) {
+                speed += 12; // Deceleration
+                spinTimerRef.current = setTimeout(animateCycle, speed);
+            } else {
+                // Landed on target team!
+                setRouletteActiveTeamIndex(targetTeamIndex);
+                setIsSpinning(false);
+
+                // Add player to team
+                const updatedTeams = currentTeams.map((t, idx) => {
+                    if (idx === targetTeamIndex) {
+                        return { ...t, players: [...t.players, player] };
+                    }
+                    return t;
+                });
+
+                setDraftedTeams(updatedTeams);
+                setLastDraftedPlayer({ player, team: updatedTeams[targetTeamIndex] });
+
+                const nextIdx = queueIdx + 1;
+                setCurrentDraftIndex(nextIdx);
+
+                if (nextIdx >= draftQueue.length) {
+                    // Draft Finished!
+                    setRouletteStage('finished');
+                    setAutoSpin(false);
+                } else if (isAuto) {
+                    autoSpinTimeoutRef.current = setTimeout(() => {
+                        executeSpin(nextIdx, updatedTeams, true);
+                    }, 800);
+                }
+            }
+        };
+
+        animateCycle();
+    };
+
+    const handleNextSpin = () => {
+        executeSpin(currentDraftIndex, draftedTeams, false);
+    };
+
+    const toggleAutoSpin = () => {
+        if (autoSpin) {
+            setAutoSpin(false);
+            if (autoSpinTimeoutRef.current) clearTimeout(autoSpinTimeoutRef.current);
+        } else {
+            setAutoSpin(true);
+            executeSpin(currentDraftIndex, draftedTeams, true);
+        }
+    };
+
+    const handleInstantFinish = () => {
+        if (isSpinning) return;
+        if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+        if (autoSpinTimeoutRef.current) clearTimeout(autoSpinTimeoutRef.current);
+
+        let teamsCopy = draftedTeams.map(t => ({ ...t, players: [...t.players] }));
+        for (let i = currentDraftIndex; i < draftQueue.length; i++) {
+            const player = draftQueue[i];
+            const minPlayers = Math.min(...teamsCopy.map(t => t.players.length));
+            const eligible = teamsCopy.map((t, idx) => ({ idx, count: t.players.length })).filter(t => t.count === minPlayers);
+            const chosen = eligible[Math.floor(Math.random() * eligible.length)].idx;
+            teamsCopy[chosen].players.push(player);
+        }
+
+        setDraftedTeams(teamsCopy);
+        setCurrentDraftIndex(draftQueue.length);
+        setRouletteStage('finished');
+        setAutoSpin(false);
+    };
+
+    const saveRouletteResult = () => {
+        const payload = draftedTeams.map(t => ({
+            name: t.name,
+            short_name: t.short_name,
+            registrant_ids: t.players.map(p => p.id),
+        }));
+
+        router.post('/admin/registrants/randomize', {
+            competition_id: selectedCompId,
+            custom_teams: payload,
+        }, {
+            onSuccess: () => {
+                setShowRouletteModal(false);
+            }
+        });
+    };
+
+    useEffect(() => {
+        return () => {
+            if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+            if (autoSpinTimeoutRef.current) clearTimeout(autoSpinTimeoutRef.current);
+        };
+    }, []);
+
+    const currentPlayer = draftQueue[currentDraftIndex];
+
     return (
         <AdminLayout title="Manajemen Pendaftar Individu">
             <Head title="Manajemen Pendaftar" />
@@ -131,15 +318,15 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                         Tambah Pendaftar
                     </button>
 
-                    {/* Randomize Button */}
+                    {/* Interactive Roulette Draft Button */}
                     <button
                         type="button"
-                        onClick={() => setShowRandomizeModal(true)}
-                        disabled={pendingCount < 2}
-                        className="px-4 py-2.5 bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                        onClick={openRoulette}
+                        disabled={registrants.length < 2}
+                        className="px-4 py-2.5 bg-gradient-to-r from-brand-600 via-amber-500 to-orange-500 hover:from-brand-700 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 animate-pulse"
                     >
-                        <Shuffle className="w-4 h-4" />
-                        Acak Otomatis ke Tim ({pendingCount})
+                        <Sparkles className="w-4 h-4 text-amber-200" />
+                        🎰 Putar Roulette Pembagian Tim ({pendingCount > 0 ? pendingCount : registrants.length})
                     </button>
                 </div>
             </div>
@@ -384,79 +571,412 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                 </div>
             </div>
 
-            {/* Modal 1: Acak Pendaftar ke Tim (Randomize) */}
-            {showRandomizeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white border border-gray-100 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4"
-                    >
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
-                                <Shuffle className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-black text-gray-900">Acak Pendaftar ke Tim</h3>
-                                <p className="text-gray-500 text-xs font-medium">Pembagian tim otomatis secara merata.</p>
-                            </div>
-                        </div>
-
-                        <div className="p-3.5 rounded-2xl bg-brand-50 border border-brand-100 text-xs space-y-1">
-                            <div className="flex justify-between font-bold text-gray-700">
-                                <span>Pendaftar Tersedia (Pending):</span>
-                                <span className="text-brand-600 font-black">{pendingCount} Pemain</span>
-                            </div>
-                            <div className="flex justify-between text-gray-500">
-                                <span>Estimasi Pemain per Tim:</span>
-                                <span className="font-bold text-gray-800">
-                                    ±{Math.floor(pendingCount / (randData.teams_count || 2))} pemain
-                                </span>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleRandomize} className="space-y-4 pt-2">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
-                                    Jumlah Tim yang Ingin Dibuat
-                                </label>
-                                <input
-                                    type="number"
-                                    min="2"
-                                    max={Math.max(2, pendingCount)}
-                                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none transition-all"
-                                    value={randData.teams_count}
-                                    onChange={e => setRandData('teams_count', e.target.value)}
-                                    required
-                                />
-                                {randErrors.teams_count && (
-                                    <p className="mt-1 text-xs text-red-500 font-semibold">{randErrors.teams_count}</p>
-                                )}
-                            </div>
-
-                            <div className="flex items-center justify-end space-x-2 pt-2">
+            {/* ======================================================== */}
+            {/* 🎰 FULL INTERACTIVE ROULETTE DRAFT LOTTERY MODAL */}
+            {/* ======================================================== */}
+            <AnimatePresence>
+                {showRouletteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white border border-gray-100 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-brand-950 text-white flex items-center justify-between border-b border-slate-700/50">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 text-white flex items-center justify-center shadow-lg shadow-brand-500/30">
+                                        <Sparkles className="w-5 h-5 animate-spin" style={{ animationDuration: '6s' }} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black tracking-tight flex items-center gap-2">
+                                            ROULETTE DRAFT PEMBAGIAN TIM
+                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-400 text-amber-950 rounded-full">
+                                                Interactive
+                                            </span>
+                                        </h3>
+                                        <p className="text-xs text-slate-300 font-medium mt-0.5">
+                                            Undian acak pemain ke dalam tim secara transparan dan visual.
+                                        </p>
+                                    </div>
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={() => setShowRandomizeModal(false)}
-                                    className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+                                    onClick={() => setShowRouletteModal(false)}
+                                    className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                                 >
-                                    Batal
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={randProcessing}
-                                    className="px-5 py-2.5 bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-brand-500/20 disabled:opacity-50 flex items-center gap-1.5"
-                                >
-                                    <Shuffle className="w-4 h-4" />
-                                    {randProcessing ? 'Mengacak Tim...' : 'Mulai Acak Sekarang'}
+                                    <X className="w-5 h-5" />
                                 </button>
                             </div>
-                        </form>
-                    </motion.div>
-                </div>
-            )}
 
-            {/* Modal 2: Tambah Pendaftar Manual */}
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1 bg-[#F8F9FD] space-y-6">
+
+                                {/* STAGE 1: SETUP */}
+                                {rouletteStage === 'setup' && (
+                                    <div className="space-y-6 max-w-xl mx-auto py-2">
+                                        <div className="text-center space-y-1">
+                                            <span className="text-4xl">🎲</span>
+                                            <h4 className="text-lg font-black text-gray-900">Persiapan Undian Tim</h4>
+                                            <p className="text-xs text-gray-500">
+                                                Tentukan jumlah tim yang akan dibentuk untuk menampung <strong>{draftQueue.length} pemain</strong>.
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-4">
+                                            <div>
+                                                <label className="block text-xs font-black uppercase text-gray-700 mb-2">
+                                                    Pilih Jumlah Tim:
+                                                </label>
+                                                <div className="grid grid-cols-5 gap-2">
+                                                    {[2, 3, 4, 5, 6].map(num => (
+                                                        <button
+                                                            key={num}
+                                                            type="button"
+                                                            onClick={() => setTeamCount(num)}
+                                                            className={`py-2.5 rounded-xl font-black text-sm border transition-all ${
+                                                                teamCount === num
+                                                                    ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/25 scale-105'
+                                                                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {num} Tim
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex justify-between items-center">
+                                                <span>Pemain per Tim:</span>
+                                                <span className="font-black text-sm">
+                                                    ±{Math.floor(draftQueue.length / teamCount)} - {Math.ceil(draftQueue.length / teamCount)} Pemain
+                                                </span>
+                                            </div>
+
+                                            <div className="space-y-2 pt-2">
+                                                <label className="block text-xs font-black uppercase text-gray-700">
+                                                    Nama Tim (Opsional):
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {Array.from({ length: teamCount }).map((_, idx) => {
+                                                        const defaultName = TEAM_THEMES[idx % TEAM_THEMES.length].name;
+                                                        return (
+                                                            <input
+                                                                key={idx}
+                                                                type="text"
+                                                                placeholder={`Nama Tim ${idx + 1} (${defaultName})`}
+                                                                value={customTeamNames[idx] || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = [...customTeamNames];
+                                                                    updated[idx] = e.target.value;
+                                                                    setCustomTeamNames(updated);
+                                                                }}
+                                                                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white"
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-end gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowRouletteModal(false)}
+                                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50"
+                                            >
+                                                Batal
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={startRouletteDraft}
+                                                className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 shadow-md shadow-brand-500/20 flex items-center gap-2 active:scale-95"
+                                            >
+                                                <Play className="w-4 h-4 fill-white" />
+                                                Mulai Roulette Draft
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* STAGE 2: LIVE SPINNING / DRAFTING */}
+                                {rouletteStage === 'spinning' && (
+                                    <div className="space-y-6">
+                                        {/* Progress Bar & Header */}
+                                        <div className="flex items-center justify-between text-xs font-bold text-gray-500 pb-1">
+                                            <span>
+                                                Pemain <strong className="text-brand-600">{currentDraftIndex + 1}</strong> dari <strong>{draftQueue.length}</strong>
+                                            </span>
+                                            <span>
+                                                {Math.round((currentDraftIndex / draftQueue.length) * 100)}% Selesai
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-brand-500 to-amber-400 transition-all duration-300 rounded-full"
+                                                style={{ width: `${(currentDraftIndex / draftQueue.length) * 100}%` }}
+                                            />
+                                        </div>
+
+                                        {/* Roulette Center Arena */}
+                                        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-md text-center relative overflow-hidden">
+                                            {/* Glow backdrop */}
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                                            {currentPlayer ? (
+                                                <div className="space-y-4 relative z-10">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-200">
+                                                        Pemain Sedang Diundi
+                                                    </span>
+
+                                                    {/* Player Card */}
+                                                    <motion.div
+                                                        key={currentPlayer.id}
+                                                        initial={{ scale: 0.85, opacity: 0 }}
+                                                        animate={{ scale: 1, opacity: 1 }}
+                                                        className="inline-flex items-center space-x-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 p-4 rounded-2xl border-2 border-brand-500/40 shadow-md"
+                                                    >
+                                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-400 text-white font-black text-lg flex items-center justify-center shadow-md">
+                                                            {currentPlayer.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <h4 className="text-base font-black text-gray-900">{currentPlayer.name}</h4>
+                                                            <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5 mt-0.5">
+                                                                <span>Posisi:</span>
+                                                                <span className="font-bold text-brand-600">
+                                                                    {positionBadges[currentPlayer.position]?.icon} {currentPlayer.position}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    </motion.div>
+
+                                                    {/* Spinning Team Roulette Carousel */}
+                                                    <div className="pt-3">
+                                                        <span className="text-[11px] font-bold text-gray-400 block mb-2">
+                                                            Memilih Tim Tujuan:
+                                                        </span>
+                                                        <div className="flex items-center justify-center gap-2.5 flex-wrap">
+                                                            {draftedTeams.map((t, idx) => {
+                                                                const isActive = rouletteActiveTeamIndex === idx;
+                                                                return (
+                                                                    <motion.div
+                                                                        key={t.id}
+                                                                        animate={{
+                                                                            scale: isActive ? 1.12 : 0.95,
+                                                                            y: isActive ? -4 : 0,
+                                                                        }}
+                                                                        transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                                                                        className={`px-4 py-3 rounded-2xl border-2 font-black text-xs transition-all flex items-center space-x-2 ${
+                                                                            isActive
+                                                                                ? `bg-gradient-to-r ${t.theme.color} text-white border-white shadow-xl ring-4 ring-brand-500/30`
+                                                                                : `${t.theme.bg} ${t.theme.text} ${t.theme.border} opacity-50`
+                                                                        }`}
+                                                                    >
+                                                                        <Trophy className="w-4 h-4" />
+                                                                        <span>{t.name}</span>
+                                                                    </motion.div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Last Draft Result Banner */}
+                                                    {lastDraftedPlayer && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 6 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 py-1.5 px-4 rounded-xl inline-flex items-center gap-1.5"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                                            <span>
+                                                                <strong>{lastDraftedPlayer.player.name}</strong> resmi masuk ke <strong>{lastDraftedPlayer.team.name}</strong>!
+                                                            </span>
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+                                            ) : null}
+
+                                            {/* Action Control Buttons */}
+                                            <div className="flex items-center justify-center gap-3 pt-6 relative z-10 border-t border-gray-100 mt-5">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleNextSpin}
+                                                    disabled={isSpinning || currentDraftIndex >= draftQueue.length}
+                                                    className="px-6 py-3 bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-brand-500/25 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                                                >
+                                                    <Play className="w-4 h-4 fill-white" />
+                                                    {isSpinning ? 'Sedang Memutar...' : 'Putar Pemain Ini'}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleAutoSpin}
+                                                    className={`px-5 py-3 rounded-2xl text-xs font-black border flex items-center gap-2 transition-all ${
+                                                        autoSpin
+                                                            ? 'bg-amber-500 text-white border-amber-500 animate-pulse'
+                                                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <FastForward className="w-4 h-4" />
+                                                    {autoSpin ? 'Hentikan Auto-Spin' : '⚡ Auto-Spin Cepat'}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleInstantFinish}
+                                                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl text-xs font-bold"
+                                                >
+                                                    Selesaikan Instan ⏩
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Real-time Team Buckets Display */}
+                                        <div className="space-y-2">
+                                            <h5 className="text-xs font-black uppercase tracking-wider text-gray-500">
+                                                Hasil Pembagian Tim Sementara:
+                                            </h5>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                                {draftedTeams.map((t) => (
+                                                    <div
+                                                        key={t.id}
+                                                        className={`bg-white rounded-2xl p-3.5 border ${t.theme.border} shadow-sm space-y-2.5`}
+                                                    >
+                                                        <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${t.theme.color}`} />
+                                                                <h6 className="text-xs font-black text-gray-900">{t.name}</h6>
+                                                            </div>
+                                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${t.theme.badge}`}>
+                                                                {t.players.length} Pemain
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                                                            {t.players.length > 0 ? (
+                                                                t.players.map((p, pIdx) => (
+                                                                    <div
+                                                                        key={p.id || pIdx}
+                                                                        className="flex items-center justify-between p-1.5 rounded-lg bg-gray-50 text-[11px] font-semibold text-gray-800"
+                                                                    >
+                                                                        <span className="truncate">{p.name}</span>
+                                                                        <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">
+                                                                            {p.position}
+                                                                        </span>
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-[10px] text-gray-400 italic block py-2 text-center">
+                                                                    Menunggu pemain...
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* STAGE 3: FINISHED & CONFIRMATION */}
+                                {rouletteStage === 'finished' && (
+                                    <div className="space-y-6">
+                                        <div className="text-center space-y-1.5">
+                                            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner ring-8 ring-emerald-50">
+                                                <Trophy className="w-8 h-8 text-emerald-600 animate-bounce" />
+                                            </div>
+                                            <h4 className="text-lg font-black text-gray-900">
+                                                🎉 Roulette Draft Selesai!
+                                            </h4>
+                                            <p className="text-xs text-gray-500 font-medium">
+                                                Seluruh <strong>{draftQueue.length} pemain</strong> telah berhasil diundi ke dalam <strong>{draftedTeams.length} tim</strong>.
+                                            </p>
+                                        </div>
+
+                                        {/* Final Roster Display Grid */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                                            {draftedTeams.map((t) => (
+                                                <div
+                                                    key={t.id}
+                                                    className={`bg-white rounded-3xl p-4 border-2 ${t.theme.border} shadow-md space-y-3`}
+                                                >
+                                                    <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+                                                        <div className="flex items-center space-x-2.5">
+                                                            <div className={`w-8 h-8 rounded-xl bg-gradient-to-r ${t.theme.color} text-white flex items-center justify-center font-black text-xs shadow-sm`}>
+                                                                {t.short_name}
+                                                            </div>
+                                                            <div>
+                                                                <h5 className="text-xs font-black text-gray-900">{t.name}</h5>
+                                                                <span className="text-[10px] text-gray-400 font-semibold">
+                                                                    Skuad Resmi
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${t.theme.badge}`}>
+                                                            {t.players.length} Pemain
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                                        {t.players.map((p, pIdx) => (
+                                                            <div
+                                                                key={p.id || pIdx}
+                                                                className="flex items-center justify-between p-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-bold text-gray-800"
+                                                            >
+                                                                <div className="flex items-center space-x-2 min-w-0 pr-1">
+                                                                    <span className="text-[10px] text-gray-400 font-bold">#{pIdx + 1}</span>
+                                                                    <span className="truncate">{p.name}</span>
+                                                                </div>
+                                                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-white text-gray-700 border border-gray-200 uppercase shrink-0">
+                                                                    {p.position}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Final Actions */}
+                                        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                                            <button
+                                                type="button"
+                                                onClick={openRoulette}
+                                                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all flex items-center gap-1.5"
+                                            >
+                                                <RotateCcw className="w-4 h-4" />
+                                                Putar Ulang (Re-Roll)
+                                            </button>
+
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowRouletteModal(false)}
+                                                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50"
+                                                >
+                                                    Tutup
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={saveRouletteResult}
+                                                    className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-600/20 flex items-center gap-2 active:scale-95"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                    Simpan Hasil Undian ke Database
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal: Tambah Pendaftar Manual */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <motion.div
