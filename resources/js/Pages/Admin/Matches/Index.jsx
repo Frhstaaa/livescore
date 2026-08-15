@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router, usePage } from '@inertiajs/react';
@@ -6,7 +6,8 @@ import {
     Calendar, Plus, Trash2, Clock, MapPin, Radio, Shuffle,
     Sparkles, Trophy, Shield, Users, RefreshCw, CheckCircle2,
     X, Filter, Play, ArrowRight, Zap, Check, AlertTriangle,
-    Layers, ChevronDown, ChevronUp, Coffee, Hourglass, Timer
+    Layers, ChevronDown, ChevronUp, Coffee, Hourglass, Timer,
+    FastForward, Award, Flame
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -48,6 +49,17 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
     const [generatedSchedule, setGeneratedSchedule] = useState(null);
     const [isSavingGenerated, setIsSavingGenerated] = useState(false);
 
+    // ROULETTE / DRAW ANIMATION STATE
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [drawCurrentIndex, setDrawCurrentIndex] = useState(0);
+    const [revealedMatches, setRevealedMatches] = useState([]);
+    const [rouletteHomeTeam, setRouletteHomeTeam] = useState(null);
+    const [rouletteAwayTeam, setRouletteAwayTeam] = useState(null);
+    const [roulettePhase, setRoulettePhase] = useState('idle'); // 'spinning_home' | 'locked_home' | 'spinning_away' | 'locked_away' | 'match_ready' | 'finished'
+    const [activeMatchInDraw, setActiveMatchInDraw] = useState(null);
+    const animationTimerRef = useRef(null);
+    const rouletteIntervalRef = useRef(null);
+
     // Auto-sync tournament settings when genCompId changes
     useEffect(() => {
         if (!genCompId) return;
@@ -62,7 +74,9 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                 setSelectedGenTeamIds(teams.map(t => t.id));
             }
         }
+        stopAnimation();
         setGeneratedSchedule(null);
+        setRevealedMatches([]);
     }, [genCompId, competitions, teams]);
 
     // Single Match Submit
@@ -105,46 +119,58 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
 
     // Toggle Team Selection in Generator
     const handleToggleGenTeam = (teamId) => {
+        stopAnimation();
         if (selectedGenTeamIds.includes(teamId)) {
             setSelectedGenTeamIds(selectedGenTeamIds.filter(id => id !== teamId));
         } else {
             setSelectedGenTeamIds([...selectedGenTeamIds, teamId]);
         }
         setGeneratedSchedule(null);
+        setRevealedMatches([]);
     };
 
     const handleSelectAllGenTeams = () => {
+        stopAnimation();
         if (selectedGenTeamIds.length === teams.length) {
             setSelectedGenTeamIds([]);
         } else {
             setSelectedGenTeamIds(teams.map(t => t.id));
         }
         setGeneratedSchedule(null);
+        setRevealedMatches([]);
     };
+
+    // Stop and clean up any ongoing animation timers
+    const stopAnimation = () => {
+        if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
+        if (rouletteIntervalRef.current) clearInterval(rouletteIntervalRef.current);
+        setIsDrawing(false);
+    };
+
+    useEffect(() => {
+        return () => stopAnimation();
+    }, []);
 
     // Calculated timing metrics
     const totalMatchPlayMinutes = genHalfDuration * 2;
     const totalMatchSpanMinutes = totalMatchPlayMinutes + genHalfTimeBreak; // Play + HT
     const totalSlotAllocatedMinutes = totalMatchSpanMinutes + genPostMatchBreak; // Play + HT + Post-Match Break
 
-    // Round-Robin Scheduling Algorithm (Berger Circle Method with Accurate Time Offsets)
-    const runFairRoundRobinGeneration = () => {
-        if (selectedGenTeamIds.length < 2) return;
+    // Core Berger Circle Fair Round-Robin Calculation
+    const calculateFullSchedule = () => {
+        if (selectedGenTeamIds.length < 2) return [];
 
-        // Get team objects
         let participatingTeams = selectedGenTeamIds
             .map(id => teams.find(t => t.id === id))
             .filter(Boolean);
 
-        // Randomly shuffle initial seed positions for 100% fairness
+        // Randomize initial seed order for 100% fairness
         participatingTeams = [...participatingTeams].sort(() => Math.random() - 0.5);
 
         let n = participatingTeams.length;
-        let hasDummy = false;
         if (n % 2 !== 0) {
             participatingTeams.push({ id: null, name: 'BYE / Istirahat', short_name: 'BYE' });
             n++;
-            hasDummy = true;
         }
 
         const totalRounds = n - 1;
@@ -155,7 +181,6 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         let matchCounter = 1;
         const roundsToRun = genFormat === 'double' ? 2 : 1;
 
-        // Berger Circle Rotation: Keep index 0 fixed, rotate index 1 to n-1
         let circle = [...participatingTeams];
         let runningPekanStartDate = new Date(baseStartDate.getTime());
 
@@ -164,21 +189,17 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                 const pekanNum = (cycle - 1) * totalRounds + (round + 1);
                 const roundTitle = `Pekan ${pekanNum}`;
 
-                // Determine start time for this Pekan
                 let matchStartTime = new Date(runningPekanStartDate.getTime());
 
                 for (let i = 0; i < matchesPerRound; i++) {
                     const t1 = circle[i];
                     const t2 = circle[n - 1 - i];
 
-                    // Skip dummy BYE matches
                     if (!t1.id || !t2.id) continue;
 
-                    // Balance Home & Away alternatingly
                     let home = (round % 2 === 1 || i === 0) ? t1 : t2;
                     let away = (round % 2 === 1 || i === 0) ? t2 : t1;
 
-                    // In second cycle (Double Round-Robin), flip Home & Away
                     if (cycle === 2) {
                         const temp = home;
                         home = away;
@@ -205,25 +226,19 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                         venue: genVenue || 'Rama Futsall Kadipaten',
                     });
 
-                    // Advance time for next match within the same Pekan (Play + HT + Post-Match Break)
                     matchStartTime = new Date(matchStartTime.getTime() + totalSlotAllocatedMinutes * 60 * 1000);
                 }
 
-                // Advance running date for next Pekan based on chosen mode
                 if (genPekanIntervalMode === 'same_day') {
-                    // Continues immediately after last match of this pekan
                     runningPekanStartDate = new Date(matchStartTime.getTime());
                 } else if (genPekanIntervalMode === 'next_day') {
-                    // Next day (+1 day), preserving original kick-off time
                     runningPekanStartDate.setDate(runningPekanStartDate.getDate() + 1);
                     runningPekanStartDate.setHours(baseStartDate.getHours(), baseStartDate.getMinutes(), 0, 0);
                 } else if (genPekanIntervalMode === 'weekly') {
-                    // Next week (+7 days), preserving original kick-off time
                     runningPekanStartDate.setDate(runningPekanStartDate.getDate() + 7);
                     runningPekanStartDate.setHours(baseStartDate.getHours(), baseStartDate.getMinutes(), 0, 0);
                 }
 
-                // Rotate circle: keep circle[0], shift others cyclically
                 const fixed = circle[0];
                 const rest = circle.slice(1);
                 const last = rest.pop();
@@ -232,7 +247,100 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
             }
         }
 
-        setGeneratedSchedule(resultSchedule);
+        return resultSchedule;
+    };
+
+    // START ROULETTE DRAW ANIMATION (Sequential Match-by-Match Reveal)
+    const startRouletteDraw = () => {
+        const fullList = calculateFullSchedule();
+        if (fullList.length === 0) return;
+
+        stopAnimation();
+        setGeneratedSchedule(fullList);
+        setRevealedMatches([]);
+        setIsDrawing(true);
+        setDrawCurrentIndex(0);
+        setRoulettePhase('spinning_home');
+
+        animateSingleMatch(fullList, 0, []);
+    };
+
+    // Animate a single match draw sequence
+    const animateSingleMatch = (fullList, matchIdx, currentRevealed) => {
+        if (matchIdx >= fullList.length) {
+            // All matches drawn!
+            setIsDrawing(false);
+            setRoulettePhase('finished');
+            setRevealedMatches(fullList);
+            return;
+        }
+
+        const match = fullList[matchIdx];
+        setActiveMatchInDraw(match);
+        setDrawCurrentIndex(matchIdx);
+
+        const poolTeams = selectedGenTeamIds.map(id => teams.find(t => t.id === id)).filter(Boolean);
+
+        // Step 1: Spin Home Team
+        setRoulettePhase('spinning_home');
+        let spinCountHome = 0;
+        const maxSpins = 8;
+        
+        rouletteIntervalRef.current = setInterval(() => {
+            const randomTeam = poolTeams[Math.floor(Math.random() * poolTeams.length)];
+            setRouletteHomeTeam(randomTeam);
+            spinCountHome++;
+
+            if (spinCountHome >= maxSpins) {
+                clearInterval(rouletteIntervalRef.current);
+                setRouletteHomeTeam(match.home_team);
+                setRoulettePhase('locked_home');
+
+                // Step 2: Spin Away Team
+                animationTimerRef.current = setTimeout(() => {
+                    setRoulettePhase('spinning_away');
+                    let spinCountAway = 0;
+
+                    rouletteIntervalRef.current = setInterval(() => {
+                        const randomAway = poolTeams[Math.floor(Math.random() * poolTeams.length)];
+                        setRouletteAwayTeam(randomAway);
+                        spinCountAway++;
+
+                        if (spinCountAway >= maxSpins) {
+                            clearInterval(rouletteIntervalRef.current);
+                            setRouletteAwayTeam(match.away_team);
+                            setRoulettePhase('locked_away');
+
+                            // Step 3: Match Ready & Reveal into list
+                            animationTimerRef.current = setTimeout(() => {
+                                setRoulettePhase('match_ready');
+                                const updatedRevealed = [...currentRevealed, match];
+                                setRevealedMatches(updatedRevealed);
+
+                                // Step 4: Move to Next Match
+                                animationTimerRef.current = setTimeout(() => {
+                                    animateSingleMatch(fullList, matchIdx + 1, updatedRevealed);
+                                }, 600);
+                            }, 400);
+                        }
+                    }, 50);
+                }, 250);
+            }
+        }, 50);
+    };
+
+    // Instant Fast-Forward / Skip Animation
+    const handleSkipAnimation = () => {
+        stopAnimation();
+        if (generatedSchedule) {
+            setRevealedMatches(generatedSchedule);
+        } else {
+            const fullList = calculateFullSchedule();
+            setGeneratedSchedule(fullList);
+            setRevealedMatches(fullList);
+        }
+        setRoulettePhase('finished');
+        setIsDrawing(false);
     };
 
     // Save Generated Schedule to Database
@@ -257,6 +365,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                 setIsSavingGenerated(false);
                 setShowGenModal(false);
                 setGeneratedSchedule(null);
+                setRevealedMatches([]);
             },
             onError: () => {
                 setIsSavingGenerated(false);
@@ -264,18 +373,16 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         });
     };
 
-    // Grouping for generated preview
-    const groupedPekans = useMemo(() => {
-        if (!generatedSchedule) return {};
+    // Grouping revealed matches by Pekan
+    const groupedRevealedPekans = useMemo(() => {
+        if (!revealedMatches || revealedMatches.length === 0) return {};
         const groups = {};
-        generatedSchedule.forEach(m => {
+        revealedMatches.forEach(m => {
             if (!groups[m.round]) groups[m.round] = [];
             groups[m.round].push(m);
         });
         return groups;
-    }, [generatedSchedule]);
-
-    const activeCompName = competitions.find(c => c.id === parseInt(genCompId))?.name || 'Turnamen';
+    }, [revealedMatches]);
 
     // Summary KPIs
     const totalMatchesCount = matches.length;
@@ -296,7 +403,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                 Manajemen Jadwal Pertandingan
                             </h2>
                             <p className="text-xs text-gray-500 font-medium mt-0.5">
-                                Atur jadwal match secara manual atau gunakan sistem <strong>Generator Liga Otomatis</strong> untuk mengacak jadwal seluruh tim secara adil dengan kalkulasi waktu istirahat (Halftime & Jeda Match).
+                                Atur jadwal match manual atau gunakan <strong>Roulette & Generator Liga Otomatis</strong> dengan animasi pengundian interaktif dan kalkulasi waktu istirahat.
                             </p>
                         </div>
 
@@ -308,7 +415,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                 className="px-4 py-2.5 bg-gradient-to-r from-brand-600 via-orange-500 to-amber-500 hover:from-brand-700 hover:to-orange-600 text-white font-black rounded-2xl text-xs shadow-md shadow-brand-500/25 transition-all flex items-center space-x-2 active:scale-95"
                             >
                                 <Zap className="w-4 h-4 fill-white" />
-                                <span>Acak & Generate Jadwal Liga</span>
+                                <span>⚡ Putar Roulette & Undi Jadwal Liga</span>
                             </button>
                         </div>
                     </div>
@@ -490,7 +597,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                 <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                                 <p className="font-bold text-xs text-gray-600">Belum ada jadwal pertandingan.</p>
                                 <p className="text-[11px] text-gray-400 mt-0.5">
-                                    Klik tombol <strong>"Acak & Generate Jadwal Liga"</strong> di atas untuk membuat jadwal otomatis.
+                                    Klik tombol <strong>"Putar Roulette & Undi Jadwal Liga"</strong> di atas untuk membuat jadwal otomatis.
                                 </p>
                             </div>
                         ) : (
@@ -616,37 +723,40 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
             </div>
 
             {/* ========================================================================= */}
-            {/* INTERACTIVE ROUND-ROBIN LEAGUE GENERATOR MODAL                            */}
+            {/* INTERACTIVE ROUND-ROBIN LEAGUE GENERATOR & ROULETTE DRAW MODAL            */}
             {/* ========================================================================= */}
             <AnimatePresence>
                 {showGenModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 15 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 15 }}
                             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                            className="bg-white border border-gray-100 rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto"
+                            className="bg-white border border-gray-100 rounded-3xl w-full max-w-4xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden my-auto"
                         >
                             {/* Modal Header */}
-                            <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-brand-900 text-white flex items-center justify-between shrink-0">
+                            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-brand-950 text-white flex items-center justify-between shrink-0 border-b border-white/10">
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-amber-400 shadow-inner">
-                                        <Zap className="w-6 h-6 fill-amber-400" />
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 shadow-lg shadow-orange-500/20">
+                                        <Zap className="w-5 h-5 fill-slate-950" />
                                     </div>
                                     <div>
-                                        <h3 className="text-base sm:text-lg font-black text-white leading-tight">
-                                            Generator Jadwal Liga Round-Robin
+                                        <h3 className="text-base sm:text-lg font-black text-white leading-tight flex items-center space-x-2">
+                                            <span>Roulette & Generator Jadwal Liga</span>
+                                            <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-brand-500/30 text-brand-300 border border-brand-500/40">
+                                                Fair Draw
+                                            </span>
                                         </h3>
                                         <p className="text-xs text-slate-300 font-medium">
-                                            Pengacakan jadwal adil dengan kalkulasi otomatis durasi main, halftime, dan jeda istirahat antar pertandingan.
+                                            Undi pertandingan adil match-by-match dengan roulette digital dan kalkulasi waktu istirahat.
                                         </p>
                                     </div>
                                 </div>
 
                                 <button
                                     type="button"
-                                    onClick={() => setShowGenModal(false)}
+                                    onClick={() => { stopAnimation(); setShowGenModal(false); }}
                                     className="p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors"
                                 >
                                     <X className="w-5 h-5" />
@@ -656,7 +766,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                             {/* Modal Body */}
                             <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
                                 
-                                {/* Step 1: Configuration Form */}
+                                {/* Step 1: Configuration Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 text-xs">
                                     {/* Turnamen Selection */}
                                     <div>
@@ -680,7 +790,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                         <div className="grid grid-cols-2 gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() => { setGenFormat('single'); setGeneratedSchedule(null); }}
+                                                onClick={() => { setGenFormat('single'); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                 className={`p-2 rounded-xl font-bold border transition-all text-center ${
                                                     genFormat === 'single'
                                                         ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
@@ -691,7 +801,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => { setGenFormat('double'); setGeneratedSchedule(null); }}
+                                                onClick={() => { setGenFormat('double'); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                 className={`p-2 rounded-xl font-bold border transition-all text-center ${
                                                     genFormat === 'double'
                                                         ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
@@ -709,7 +819,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                         <input
                                             type="datetime-local"
                                             value={genStartDate}
-                                            onChange={(e) => { setGenStartDate(e.target.value); setGeneratedSchedule(null); }}
+                                            onChange={(e) => { setGenStartDate(e.target.value); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                             className="w-full p-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-900"
                                         />
                                     </div>
@@ -719,7 +829,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                         <label className="block font-bold text-gray-700 mb-1">Pola Jadwal Antar Pekan</label>
                                         <select
                                             value={genPekanIntervalMode}
-                                            onChange={(e) => { setGenPekanIntervalMode(e.target.value); setGeneratedSchedule(null); }}
+                                            onChange={(e) => { setGenPekanIntervalMode(e.target.value); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                             className="w-full p-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-900 outline-none"
                                         >
                                             <option value="same_day">⚡ Lanjut di Hari yang Sama (Turnamen 1 Hari Penuh)</option>
@@ -734,7 +844,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                         <input
                                             type="text"
                                             value={genVenue}
-                                            onChange={(e) => { setGenVenue(e.target.value); setGeneratedSchedule(null); }}
+                                            onChange={(e) => { setGenVenue(e.target.value); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                             className="w-full p-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-900"
                                             placeholder="Rama Futsall Kadipaten"
                                         />
@@ -750,12 +860,12 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                             className="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500"
                                         />
                                         <label htmlFor="genClearExisting" className="font-bold text-gray-800 cursor-pointer">
-                                            Hapus jadwal match lama pada turnamen ini sebelum generate
+                                            Hapus jadwal match lama pada turnamen ini sebelum simpan
                                         </label>
                                     </div>
                                 </div>
 
-                                {/* Step 2: Detailed Duration & Break Time Configuration Card */}
+                                {/* Step 2: Duration & Rest Calculation */}
                                 <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3 text-xs">
                                     <div className="flex items-center justify-between">
                                         <h4 className="font-black text-amber-900 uppercase tracking-wider text-[11px] flex items-center">
@@ -780,7 +890,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                     min={5}
                                                     max={90}
                                                     value={genHalfDuration}
-                                                    onChange={(e) => { setGenHalfDuration(parseInt(e.target.value) || 5); setGeneratedSchedule(null); }}
+                                                    onChange={(e) => { setGenHalfDuration(parseInt(e.target.value) || 5); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                     className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg font-black text-center text-gray-900 text-xs"
                                                 />
                                             </div>
@@ -789,14 +899,13 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                     <button
                                                         key={m}
                                                         type="button"
-                                                        onClick={() => { setGenHalfDuration(m); setGeneratedSchedule(null); }}
+                                                        onClick={() => { setGenHalfDuration(m); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                         className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${genHalfDuration === m ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                                     >
                                                         {m}'
                                                     </button>
                                                 ))}
                                             </div>
-                                            <span className="text-[10px] text-gray-400 block mt-1">Total main 2 babak = {totalMatchPlayMinutes} menit</span>
                                         </div>
 
                                         {/* Istirahat Half Time */}
@@ -811,7 +920,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                     min={1}
                                                     max={60}
                                                     value={genHalfTimeBreak}
-                                                    onChange={(e) => { setGenHalfTimeBreak(parseInt(e.target.value) || 5); setGeneratedSchedule(null); }}
+                                                    onChange={(e) => { setGenHalfTimeBreak(parseInt(e.target.value) || 5); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                     className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg font-black text-center text-gray-900 text-xs"
                                                 />
                                             </div>
@@ -820,14 +929,13 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                     <button
                                                         key={m}
                                                         type="button"
-                                                        onClick={() => { setGenHalfTimeBreak(m); setGeneratedSchedule(null); }}
+                                                        onClick={() => { setGenHalfTimeBreak(m); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                         className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${genHalfTimeBreak === m ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                                     >
                                                         {m}'
                                                     </button>
                                                 ))}
                                             </div>
-                                            <span className="text-[10px] text-gray-400 block mt-1">Waktu jeda antar babak</span>
                                         </div>
 
                                         {/* Jeda Istirahat Antar Pertandingan */}
@@ -842,7 +950,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                     min={0}
                                                     max={120}
                                                     value={genPostMatchBreak}
-                                                    onChange={(e) => { setGenPostMatchBreak(parseInt(e.target.value) || 0); setGeneratedSchedule(null); }}
+                                                    onChange={(e) => { setGenPostMatchBreak(parseInt(e.target.value) || 0); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                     className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg font-black text-center text-gray-900 text-xs"
                                                 />
                                             </div>
@@ -851,14 +959,13 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                     <button
                                                         key={m}
                                                         type="button"
-                                                        onClick={() => { setGenPostMatchBreak(m); setGeneratedSchedule(null); }}
+                                                        onClick={() => { setGenPostMatchBreak(m); setGeneratedSchedule(null); setRevealedMatches([]); }}
                                                         className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${genPostMatchBreak === m ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                                     >
                                                         {m}'
                                                     </button>
                                                 ))}
                                             </div>
-                                            <span className="text-[10px] text-gray-400 block mt-1">Istirahat sebelum match berikutnya</span>
                                         </div>
                                     </div>
 
@@ -931,23 +1038,158 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     </div>
                                 </div>
 
-                                {/* Generate Button Action */}
-                                <div className="text-center pt-1">
+                                {/* Step 4: Action Buttons (Roulette Trigger & Skip) */}
+                                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                                     <button
                                         type="button"
                                         disabled={selectedGenTeamIds.length < 2}
-                                        onClick={runFairRoundRobinGeneration}
-                                        className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-brand-600 to-orange-500 hover:from-brand-700 hover:to-orange-600 disabled:opacity-50 text-white font-black rounded-2xl shadow-lg shadow-brand-500/25 transition-all text-xs flex items-center justify-center space-x-2 mx-auto active:scale-95"
+                                        onClick={startRouletteDraw}
+                                        className="px-8 py-3.5 bg-gradient-to-r from-brand-600 via-orange-500 to-amber-500 hover:from-brand-700 hover:to-orange-600 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl shadow-brand-500/25 transition-all text-xs flex items-center space-x-2 active:scale-95"
                                     >
-                                        <Shuffle className="w-4 h-4" />
+                                        <Shuffle className={`w-4 h-4 ${isDrawing ? 'animate-spin' : ''}`} />
                                         <span>
-                                            {generatedSchedule ? '🎲 Acak Ulang (Re-Shuffle Pairing & Waktu)' : '🎲 Acak & Kalkulasi Jadwal + Waktu Istirahat'}
+                                            {isDrawing ? 'Sedang Memutar Roulette...' : revealedMatches.length > 0 ? '🎲 Putar Ulang Roulette Undian' : '🎲 Putar Roulette & Undi Jadwal Liga'}
                                         </span>
                                     </button>
+
+                                    {isDrawing && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSkipAnimation}
+                                            className="px-4 py-3 bg-slate-800 hover:bg-slate-900 text-slate-200 font-bold rounded-2xl text-xs flex items-center space-x-1.5 transition-colors shadow-md"
+                                        >
+                                            <FastForward className="w-4 h-4 text-amber-400" />
+                                            <span>Lewati Animasi</span>
+                                        </button>
+                                    )}
                                 </div>
 
-                                {/* Step 4: Generated Schedule Preview */}
-                                {generatedSchedule && (
+                                {/* ========================================================= */}
+                                {/* CINEMATIC ROULETTE STAGE ANIMATION CARD                   */}
+                                {/* ========================================================= */}
+                                {isDrawing && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 rounded-3xl p-5 sm:p-6 border border-amber-500/40 shadow-2xl text-white space-y-4 relative overflow-hidden"
+                                    >
+                                        {/* Background Pulse Glow */}
+                                        <div className="absolute -top-24 -left-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
+                                        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                                        {/* Draw Status Header & Progress Bar */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                                            <div className="flex items-center space-x-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                                                <span className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                                                    LIVE DRAW ROULETTE • {activeMatchInDraw?.round || 'Pekan 1'}
+                                                </span>
+                                            </div>
+
+                                            <div className="text-[11px] font-bold text-slate-300">
+                                                Mengundi Match <strong className="text-white font-black">{drawCurrentIndex + 1}</strong> dari <strong className="text-white font-black">{generatedSchedule?.length || 0}</strong>
+                                            </div>
+                                        </div>
+
+                                        {/* Progress Bar */}
+                                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                            <motion.div
+                                                className="bg-gradient-to-r from-brand-500 via-amber-400 to-emerald-400 h-full rounded-full"
+                                                style={{
+                                                    width: `${((drawCurrentIndex + 1) / (generatedSchedule?.length || 1)) * 100}%`
+                                                }}
+                                                transition={{ duration: 0.3 }}
+                                            />
+                                        </div>
+
+                                        {/* 3D Roulette Duel Arena Box */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-11 gap-3 items-center py-2">
+                                            {/* Home Team Reel */}
+                                            <div className={`sm:col-span-5 p-4 rounded-2xl border transition-all flex items-center space-x-3 bg-slate-900/90 ${
+                                                roulettePhase === 'spinning_home'
+                                                    ? 'border-brand-400 ring-2 ring-brand-400/50 shadow-lg shadow-brand-500/20 animate-pulse'
+                                                    : 'border-slate-700'
+                                            }`}>
+                                                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xs font-black shrink-0 overflow-hidden shadow-inner">
+                                                    {rouletteHomeTeam?.logo_url ? (
+                                                        <img src={rouletteHomeTeam.logo_url} alt="" className="w-full h-full object-contain" />
+                                                    ) : (
+                                                        <span className="text-base font-black text-amber-400">{rouletteHomeTeam?.short_name || 'H'}</span>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                                                        {roulettePhase === 'spinning_home' ? '🎲 MEMUTAR TUAN RUMAH...' : 'TUAN RUMAH (HOME)'}
+                                                    </span>
+                                                    <h4 className="text-sm font-black text-white truncate">
+                                                        {rouletteHomeTeam?.name || 'Memilih Tim...'}
+                                                    </h4>
+                                                </div>
+                                                {roulettePhase !== 'spinning_home' && (
+                                                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                                                        ✓
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Center VS Lightning Icon */}
+                                            <div className="sm:col-span-1 text-center flex flex-col items-center justify-center">
+                                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 font-black text-xs shadow-lg shadow-amber-500/40 animate-bounce">
+                                                    VS
+                                                </div>
+                                            </div>
+
+                                            {/* Away Team Reel */}
+                                            <div className={`sm:col-span-5 p-4 rounded-2xl border transition-all flex items-center space-x-3 bg-slate-900/90 ${
+                                                roulettePhase === 'spinning_away'
+                                                    ? 'border-brand-400 ring-2 ring-brand-400/50 shadow-lg shadow-brand-500/20 animate-pulse'
+                                                    : 'border-slate-700'
+                                            }`}>
+                                                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xs font-black shrink-0 overflow-hidden shadow-inner">
+                                                    {rouletteAwayTeam?.logo_url ? (
+                                                        <img src={rouletteAwayTeam.logo_url} alt="" className="w-full h-full object-contain" />
+                                                    ) : (
+                                                        <span className="text-base font-black text-amber-400">{rouletteAwayTeam?.short_name || 'A'}</span>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                                                        {roulettePhase === 'spinning_away' ? '🎲 MEMUTAR TIM TAMU...' : 'TIM TAMU (AWAY)'}
+                                                    </span>
+                                                    <h4 className="text-sm font-black text-white truncate">
+                                                        {rouletteAwayTeam?.name || 'Memilih Tim...'}
+                                                    </h4>
+                                                </div>
+                                                {roulettePhase === 'locked_away' || roulettePhase === 'match_ready' ? (
+                                                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                                                        ✓
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        </div>
+
+                                        {/* Active Match Details Sub-bar */}
+                                        <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                                            <span className="flex items-center space-x-1">
+                                                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                                                <span>Kick-off: <strong className="text-white">{activeMatchInDraw?.kickOffStr} - {activeMatchInDraw?.endTimeStr} WIB</strong></span>
+                                            </span>
+                                            <span className="flex items-center space-x-1">
+                                                <Coffee className="w-3.5 h-3.5 text-amber-400" />
+                                                <span>HT: <strong className="text-white">{genHalfTimeBreak}'</strong> • Jeda: <strong className="text-white">{genPostMatchBreak}'</strong></span>
+                                            </span>
+                                            <span className="flex items-center space-x-1">
+                                                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                                                <span className="truncate">{activeMatchInDraw?.venue}</span>
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* ========================================================= */}
+                                {/* REVEALED MATCHES LIST (ANIMATED 1-BY-1 CARDS)             */}
+                                {/* ========================================================= */}
+                                {revealedMatches.length > 0 && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 15 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -958,7 +1200,9 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                                                 <div>
                                                     <p className="font-black">
-                                                        Jadwal Adil & Waktu Istirahat Siap! ({generatedSchedule.length} Pertandingan)
+                                                        {revealedMatches.length === (generatedSchedule?.length || 0)
+                                                            ? `🎉 Seluruh Jadwal Berhasil Diundi! (${revealedMatches.length} Pertandingan)`
+                                                            : `Sedang Mengundi Jadwal... (${revealedMatches.length} dari ${generatedSchedule?.length || 0} Pertandingan)`}
                                                     </p>
                                                     <p className="text-[11px] text-emerald-700">
                                                         Setiap match dialokasikan {totalSlotAllocatedMinutes} menit (Main: {totalMatchPlayMinutes}' • HT: {genHalfTimeBreak}' • Jeda: {genPostMatchBreak}').
@@ -966,21 +1210,21 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center space-x-2 shrink-0">
+                                            {revealedMatches.length === (generatedSchedule?.length || 0) && (
                                                 <button
                                                     type="button"
-                                                    onClick={runFairRoundRobinGeneration}
-                                                    className="px-3 py-1.5 bg-white text-emerald-800 font-bold rounded-xl text-xs border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center space-x-1"
+                                                    onClick={startRouletteDraw}
+                                                    className="px-3 py-1.5 bg-white text-emerald-800 font-bold rounded-xl text-xs border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center space-x-1 shrink-0"
                                                 >
                                                     <RefreshCw className="w-3.5 h-3.5" />
-                                                    <span>Acak Lagi</span>
+                                                    <span>Undi Ulang</span>
                                                 </button>
-                                            </div>
+                                            )}
                                         </div>
 
-                                        {/* Pekan Grouping Accordions */}
+                                        {/* Pekan Grouping Accordions with Staggered Fade-in */}
                                         <div className="space-y-3">
-                                            {Object.entries(groupedPekans).map(([pekanTitle, matchItems]) => (
+                                            {Object.entries(groupedRevealedPekans).map(([pekanTitle, matchItems]) => (
                                                 <div key={pekanTitle} className="bg-gray-50/80 rounded-2xl p-3.5 border border-gray-200/80 space-y-2.5">
                                                     <div className="flex items-center justify-between font-black text-xs text-gray-900">
                                                         <span className="flex items-center space-x-1.5 text-brand-600">
@@ -995,13 +1239,16 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
 
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                                         {matchItems.map((item, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                className="bg-white p-3 rounded-xl border border-gray-200 shadow-xs space-y-2 text-xs"
+                                                            <motion.div
+                                                                key={item.tempId || idx}
+                                                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                                                className="bg-white p-3.5 rounded-2xl border border-gray-200/90 shadow-xs space-y-2 text-xs hover:border-brand-300 transition-colors"
                                                             >
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex items-center space-x-2 min-w-0">
-                                                                        <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-[9px] font-black shrink-0 overflow-hidden">
+                                                                        <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden border border-gray-200">
                                                                             {item.home_team?.logo_url ? (
                                                                                 <img src={item.home_team.logo_url} alt="" className="w-full h-full object-contain" />
                                                                             ) : (
@@ -1011,17 +1258,17 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                                         <span className="font-bold text-gray-900 truncate">{item.home_team?.name}</span>
                                                                     </div>
 
-                                                                    <span className="text-[10px] font-black text-brand-600 px-2 py-0.5 bg-brand-50 rounded mx-2 shrink-0">
+                                                                    <span className="text-[10px] font-black text-brand-600 px-2 py-0.5 bg-brand-50 rounded mx-2 shrink-0 border border-brand-100">
                                                                         VS
                                                                     </span>
 
                                                                     <div className="flex items-center justify-end space-x-2 min-w-0 text-right">
                                                                         <span className="font-bold text-gray-900 truncate">{item.away_team?.name}</span>
-                                                                        <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-[9px] font-black shrink-0 overflow-hidden">
+                                                                        <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden border border-gray-200">
                                                                             {item.away_team?.logo_url ? (
                                                                                 <img src={item.away_team.logo_url} alt="" className="w-full h-full object-contain" />
                                                                             ) : (
-                                                                                item.away_team?.short_name
+                                                                            item.away_team?.short_name
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -1029,14 +1276,15 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
 
                                                                 {/* Time details badge per match */}
                                                                 <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-500 font-semibold">
-                                                                    <span className="text-brand-600 font-black">
-                                                                        ⏱️ Kick-off: {item.kickOffStr} - {item.endTimeStr}
+                                                                    <span className="text-brand-600 font-black flex items-center space-x-1">
+                                                                        <Clock className="w-3 h-3 text-brand-500" />
+                                                                        <span>{item.kickOffStr} - {item.endTimeStr} WIB</span>
                                                                     </span>
-                                                                    <span className="text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded font-bold">
+                                                                    <span className="text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md font-bold">
                                                                         +Jeda {genPostMatchBreak}'
                                                                     </span>
                                                                 </div>
-                                                            </div>
+                                                            </motion.div>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -1051,13 +1299,13 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                             <div className="p-4 sm:p-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
                                 <button
                                     type="button"
-                                    onClick={() => setShowGenModal(false)}
+                                    onClick={() => { stopAnimation(); setShowGenModal(false); }}
                                     className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl text-xs transition-colors"
                                 >
                                     Tutup
                                 </button>
 
-                                {generatedSchedule && (
+                                {revealedMatches.length > 0 && !isDrawing && (
                                     <button
                                         type="button"
                                         disabled={isSavingGenerated}
@@ -1066,7 +1314,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     >
                                         <Check className="w-4 h-4 stroke-[3]" />
                                         <span>
-                                            {isSavingGenerated ? 'Menyimpan ke Database...' : `Simpan ${generatedSchedule.length} Jadwal ke Database`}
+                                            {isSavingGenerated ? 'Menyimpan ke Database...' : `Simpan ${revealedMatches.length} Jadwal ke Database`}
                                         </span>
                                     </button>
                                 )}
