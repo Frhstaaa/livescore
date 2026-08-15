@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flame } from 'lucide-react';
 
-export default function LiveTimer({ status, startedAt, pausedSeconds = 0, baseMinute = 0, showSeconds = true, className = "" }) {
+export default function LiveTimer({ status, startedAt, pausedSeconds = 0, baseMinute = 0, halfDuration = null, showSeconds = true, className = "" }) {
     const isLive = status === 'live';
     const isHalfTime = status === 'half_time';
     const isFullTime = status === 'full_time';
@@ -36,8 +36,8 @@ export default function LiveTimer({ status, startedAt, pausedSeconds = 0, baseMi
 
     if (isHalfTime) {
         return (
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 ${className}`}>
-                HT (20')
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200 ${className}`}>
+                HT {halfDuration ? `(${halfDuration}')` : ''}
             </span>
         );
     }

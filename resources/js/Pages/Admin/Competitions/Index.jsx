@@ -17,6 +17,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
         type: 'league',
         match_duration_minutes: 40,
         half_duration_minutes: 20,
+        half_time_duration_minutes: 5,
         points_win: 3,
         points_draw: 1,
         points_loss: 0,
@@ -49,6 +50,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
             type: c.type,
             match_duration_minutes: c.match_duration_minutes || 40,
             half_duration_minutes: c.half_duration_minutes || 20,
+            half_time_duration_minutes: c.half_time_duration_minutes || 5,
             points_win: c.points_win || 3,
             points_draw: c.points_draw || 1,
             points_loss: c.points_loss || 0,
@@ -96,6 +98,16 @@ export default function AdminCompetitions({ competitions, allTeams }) {
         });
     };
 
+    // Preset Durasi Selector
+    const applyDurationPreset = (halfMin, htMin) => {
+        setData((prev) => ({
+            ...prev,
+            half_duration_minutes: halfMin,
+            match_duration_minutes: halfMin * 2,
+            half_time_duration_minutes: htMin,
+        }));
+    };
+
     return (
         <AdminLayout title="Pengaturan Turnamen">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -115,13 +127,13 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                                 className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand-500"
-                                placeholder="RS LIVASYA FUTSAL CUP 2026"
+                                placeholder="Contoh: Livasya Futsal League 2026"
                                 required
                             />
                             {errors.name && <span className="text-red-500 text-[10px] mt-1 block">{errors.name}</span>}
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                             <div>
                                 <label className="block font-bold text-gray-700 mb-1">Musim / Season</label>
                                 <input
@@ -129,12 +141,13 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                     value={data.season}
                                     onChange={(e) => setData('season', e.target.value)}
                                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900"
+                                    placeholder="2026 / Season 1"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">Sistem Turnamen</label>
+                                <label className="block font-bold text-gray-700 mb-1">Sistem Kompetisi</label>
                                 <select
                                     value={data.type}
                                     onChange={(e) => setData('type', e.target.value)}
@@ -147,34 +160,140 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                             </div>
                         </div>
 
-                        {/* Waktu Bermain Config */}
-                        <div className="p-3 bg-brand-50/50 rounded-xl border border-brand-100 space-y-3">
-                            <h4 className="font-black text-brand-700 uppercase tracking-wider text-[11px] flex items-center">
-                                <Clock className="w-4 h-4 mr-1 text-brand-500" />
-                                Waktu Bermain Match (Menit)
-                            </h4>
+                        {/* Waktu Bermain & Half Time Config */}
+                        <div className="p-3.5 bg-brand-50/60 rounded-2xl border border-brand-200/70 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-black text-brand-800 uppercase tracking-wider text-[11px] flex items-center">
+                                    <Clock className="w-4 h-4 mr-1 text-brand-600" />
+                                    Atur Durasi Waktu Match (Mulai 5 Menit)
+                                </h4>
+                            </div>
 
-                            <div className="grid grid-cols-2 gap-2">
+                            {/* Quick Presets */}
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-600 mb-1.5">Preset Cepat:</label>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                    {[
+                                        { label: '5\'x2 (10\')', half: 5, ht: 5 },
+                                        { label: '10\'x2 (20\')', half: 10, ht: 5 },
+                                        { label: '15\'x2 (30\')', half: 15, ht: 5 },
+                                        { label: '20\'x2 (40\')', half: 20, ht: 5 },
+                                        { label: '20\'x2 (40\')', half: 20, ht: 10 },
+                                        { label: '45\'x2 (90\')', half: 45, ht: 15 },
+                                    ].map((p, i) => {
+                                        const isMatch = data.half_duration_minutes === p.half && data.half_time_duration_minutes === p.ht;
+                                        return (
+                                            <button
+                                                key={i}
+                                                type="button"
+                                                onClick={() => applyDurationPreset(p.half, p.ht)}
+                                                className={`py-1.5 px-1 rounded-xl text-[10px] font-black border text-center transition-all ${
+                                                    isMatch
+                                                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-brand-50'
+                                                }`}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Detailed Inputs */}
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                                {/* Durasi Per Babak */}
                                 <div>
-                                    <label className="block font-semibold text-gray-600 text-[10px] mb-1">Total Durasi</label>
-                                    <input
-                                        type="number"
-                                        value={data.match_duration_minutes}
-                                        onChange={(e) => setData('match_duration_minutes', parseInt(e.target.value))}
-                                        className="w-full p-2 bg-white border border-gray-200 rounded-lg font-black text-center text-gray-900"
-                                        required
-                                    />
+                                    <label className="block font-bold text-gray-700 text-[10px] mb-1">Per Babak</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min={5}
+                                            max={90}
+                                            value={data.half_duration_minutes}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 5;
+                                                setData((prev) => ({
+                                                    ...prev,
+                                                    half_duration_minutes: val,
+                                                    match_duration_minutes: val * 2
+                                                }));
+                                            }}
+                                            className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
+                                            required
+                                        />
+                                        <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {[5, 10, 15, 20, 25, 30].map(m => (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => setData(prev => ({ ...prev, half_duration_minutes: m, match_duration_minutes: m * 2 }))}
+                                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.half_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                            >
+                                                {m}'
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
 
+                                {/* Total Durasi */}
                                 <div>
-                                    <label className="block font-semibold text-gray-600 text-[10px] mb-1">Menit/Babak</label>
-                                    <input
-                                        type="number"
-                                        value={data.half_duration_minutes}
-                                        onChange={(e) => setData('half_duration_minutes', parseInt(e.target.value))}
-                                        className="w-full p-2 bg-white border border-gray-200 rounded-lg font-black text-center text-gray-900"
-                                        required
-                                    />
+                                    <label className="block font-bold text-gray-700 text-[10px] mb-1">Total Main</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min={5}
+                                            max={180}
+                                            value={data.match_duration_minutes}
+                                            onChange={(e) => setData('match_duration_minutes', parseInt(e.target.value) || 10)}
+                                            className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
+                                            required
+                                        />
+                                        <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {[10, 20, 30, 40, 50, 60].map(m => (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => setData('match_duration_minutes', m)}
+                                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.match_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                            >
+                                                {m}'
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Half Time Break */}
+                                <div>
+                                    <label className="block font-bold text-gray-700 text-[10px] mb-1">Istirahat (HT)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={60}
+                                            value={data.half_time_duration_minutes}
+                                            onChange={(e) => setData('half_time_duration_minutes', parseInt(e.target.value) || 5)}
+                                            className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
+                                            required
+                                        />
+                                        <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {[5, 10, 15, 20].map(m => (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => setData('half_time_duration_minutes', m)}
+                                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.half_time_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                            >
+                                                {m}'
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -270,7 +389,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                                 {c.type}
                                             </span>
                                             <span className="font-bold text-gray-700 text-[11px]">
-                                                ⏱️ {c.match_duration_minutes || 40}' ({c.half_duration_minutes || 20}'x2)
+                                                ⏱️ {c.match_duration_minutes || 40}' ({c.half_duration_minutes || 20}'x2 • HT {c.half_time_duration_minutes || 5}')
                                             </span>
                                         </div>
                                         <button
@@ -350,7 +469,10 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                                                 </span>
                                             </td>
                                             <td className="py-3 px-3 text-center font-bold text-gray-700">
-                                                {c.match_duration_minutes || 40}' ({c.half_duration_minutes || 20}' x 2)
+                                                <div>
+                                                    <span className="font-black text-gray-900">{c.match_duration_minutes || 40}'</span>
+                                                    <span className="text-[10px] text-gray-400 block font-medium">({c.half_duration_minutes || 20}'x2 • HT {c.half_time_duration_minutes || 5}')</span>
+                                                </div>
                                             </td>
                                             <td className="py-3 px-3 text-center">
                                                 {c.is_active ? (
