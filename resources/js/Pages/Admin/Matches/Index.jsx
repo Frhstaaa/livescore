@@ -7,7 +7,7 @@ import {
     Sparkles, Trophy, Shield, Users, RefreshCw, CheckCircle2,
     X, Filter, Play, ArrowRight, Zap, Check, AlertTriangle,
     Layers, ChevronDown, ChevronUp, Coffee, Hourglass, Timer,
-    FastForward, Award, Flame
+    FastForward, Award, Flame, PlayCircle, PauseCircle, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -50,7 +50,9 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
     const [isSavingGenerated, setIsSavingGenerated] = useState(false);
 
     // ROULETTE / DRAW ANIMATION STATE
+    const [drawMode, setDrawMode] = useState('step_by_step'); // 'step_by_step' | 'auto_play'
     const [isDrawing, setIsDrawing] = useState(false);
+    const [isSpinning, setIsSpinning] = useState(false);
     const [drawCurrentIndex, setDrawCurrentIndex] = useState(0);
     const [revealedMatches, setRevealedMatches] = useState([]);
     const [rouletteHomeTeam, setRouletteHomeTeam] = useState(null);
@@ -145,6 +147,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
         if (rouletteIntervalRef.current) clearInterval(rouletteIntervalRef.current);
         setIsDrawing(false);
+        setIsSpinning(false);
     };
 
     useEffect(() => {
@@ -250,26 +253,27 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         return resultSchedule;
     };
 
-    // START ROULETTE DRAW ANIMATION (Sequential Match-by-Match Reveal)
-    const startRouletteDraw = () => {
+    // START ROULETTE DRAW (Starts from match 0)
+    const handleStartRoulette = (mode = 'step_by_step') => {
         const fullList = calculateFullSchedule();
         if (fullList.length === 0) return;
 
         stopAnimation();
+        setDrawMode(mode);
         setGeneratedSchedule(fullList);
         setRevealedMatches([]);
         setIsDrawing(true);
         setDrawCurrentIndex(0);
-        setRoulettePhase('spinning_home');
 
-        animateSingleMatch(fullList, 0, []);
+        // Spin the first match
+        runSpinForMatch(fullList, 0, [], mode);
     };
 
-    // Animate a single match draw sequence
-    const animateSingleMatch = (fullList, matchIdx, currentRevealed) => {
+    // Spin specific match index
+    const runSpinForMatch = (fullList, matchIdx, currentRevealed, currentMode = drawMode) => {
         if (matchIdx >= fullList.length) {
-            // All matches drawn!
-            setIsDrawing(false);
+            setIsDrawing(true);
+            setIsSpinning(false);
             setRoulettePhase('finished');
             setRevealedMatches(fullList);
             return;
@@ -278,55 +282,73 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         const match = fullList[matchIdx];
         setActiveMatchInDraw(match);
         setDrawCurrentIndex(matchIdx);
+        setIsSpinning(true);
+        setRoulettePhase('spinning_home');
 
         const poolTeams = selectedGenTeamIds.map(id => teams.find(t => t.id === id)).filter(Boolean);
 
-        // Step 1: Spin Home Team
-        setRoulettePhase('spinning_home');
+        // Stage 1: Spin Home Team (Smooth 80ms interval, 12 spins = ~1 sec)
         let spinCountHome = 0;
-        const maxSpins = 8;
-        
+        const maxSpinsHome = 12;
+
         rouletteIntervalRef.current = setInterval(() => {
-            const randomTeam = poolTeams[Math.floor(Math.random() * poolTeams.length)];
-            setRouletteHomeTeam(randomTeam);
+            const randomHome = poolTeams[Math.floor(Math.random() * poolTeams.length)];
+            setRouletteHomeTeam(randomHome);
             spinCountHome++;
 
-            if (spinCountHome >= maxSpins) {
+            if (spinCountHome >= maxSpinsHome) {
                 clearInterval(rouletteIntervalRef.current);
                 setRouletteHomeTeam(match.home_team);
                 setRoulettePhase('locked_home');
 
-                // Step 2: Spin Away Team
+                // Stage 2: Brief dramatic pause (400ms), then spin Away Team
                 animationTimerRef.current = setTimeout(() => {
                     setRoulettePhase('spinning_away');
                     let spinCountAway = 0;
+                    const maxSpinsAway = 12;
 
                     rouletteIntervalRef.current = setInterval(() => {
                         const randomAway = poolTeams[Math.floor(Math.random() * poolTeams.length)];
                         setRouletteAwayTeam(randomAway);
                         spinCountAway++;
 
-                        if (spinCountAway >= maxSpins) {
+                        if (spinCountAway >= maxSpinsAway) {
                             clearInterval(rouletteIntervalRef.current);
                             setRouletteAwayTeam(match.away_team);
                             setRoulettePhase('locked_away');
 
-                            // Step 3: Match Ready & Reveal into list
+                            // Stage 3: Match Ready & Add to revealed list
                             animationTimerRef.current = setTimeout(() => {
                                 setRoulettePhase('match_ready');
+                                setIsSpinning(false);
                                 const updatedRevealed = [...currentRevealed, match];
                                 setRevealedMatches(updatedRevealed);
 
-                                // Step 4: Move to Next Match
-                                animationTimerRef.current = setTimeout(() => {
-                                    animateSingleMatch(fullList, matchIdx + 1, updatedRevealed);
-                                }, 600);
-                            }, 400);
+                                // If Auto-Play Mode, proceed after 2.2 seconds
+                                if (currentMode === 'auto_play' && matchIdx + 1 < fullList.length) {
+                                    animationTimerRef.current = setTimeout(() => {
+                                        runSpinForMatch(fullList, matchIdx + 1, updatedRevealed, currentMode);
+                                    }, 2200);
+                                } else if (matchIdx + 1 >= fullList.length) {
+                                    setRoulettePhase('finished');
+                                }
+                            }, 500);
                         }
-                    }, 50);
-                }, 250);
+                    }, 80);
+                }, 400);
             }
-        }, 50);
+        }, 80);
+    };
+
+    // User clicks "Undi Match Berikutnya" (Manual Next Step)
+    const handleDrawNextMatch = () => {
+        if (!generatedSchedule || isSpinning) return;
+        const nextIdx = drawCurrentIndex + 1;
+        if (nextIdx < generatedSchedule.length) {
+            runSpinForMatch(generatedSchedule, nextIdx, revealedMatches, drawMode);
+        } else {
+            setRoulettePhase('finished');
+        }
     };
 
     // Instant Fast-Forward / Skip Animation
@@ -340,7 +362,8 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
             setRevealedMatches(fullList);
         }
         setRoulettePhase('finished');
-        setIsDrawing(false);
+        setIsDrawing(true);
+        setIsSpinning(false);
     };
 
     // Save Generated Schedule to Database
@@ -390,6 +413,9 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
     const liveMatchesCount = matches.filter(m => m.status === 'live').length;
     const finishedMatchesCount = matches.filter(m => m.status === 'full_time').length;
 
+    const hasMoreMatchesToDraw = generatedSchedule && (drawCurrentIndex + 1 < generatedSchedule.length);
+    const isLastMatchJustDrawn = generatedSchedule && (drawCurrentIndex + 1 === generatedSchedule.length) && (roulettePhase === 'match_ready' || roulettePhase === 'finished');
+
     return (
         <AdminLayout title="Jadwal Match & Generator Liga">
             <div className="space-y-6">
@@ -403,7 +429,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                 Manajemen Jadwal Pertandingan
                             </h2>
                             <p className="text-xs text-gray-500 font-medium mt-0.5">
-                                Atur jadwal match manual atau gunakan <strong>Roulette & Generator Liga Otomatis</strong> dengan animasi pengundian interaktif dan kalkulasi waktu istirahat.
+                                Atur jadwal match manual atau gunakan <strong>Roulette & Generator Liga Otomatis</strong> dengan sistem undian per pertandingan (*step-by-step next match*).
                             </p>
                         </div>
 
@@ -743,13 +769,13 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     </div>
                                     <div>
                                         <h3 className="text-base sm:text-lg font-black text-white leading-tight flex items-center space-x-2">
-                                            <span>Roulette & Generator Jadwal Liga</span>
+                                            <span>Roulette & Undian Jadwal Liga</span>
                                             <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-brand-500/30 text-brand-300 border border-brand-500/40">
-                                                Fair Draw
+                                                Step-by-Step Draw
                                             </span>
                                         </h3>
                                         <p className="text-xs text-slate-300 font-medium">
-                                            Undi pertandingan adil match-by-match dengan roulette digital dan kalkulasi waktu istirahat.
+                                            Undi pertandingan adil per pertandingan dengan tombol Next Match dan kalkulasi waktu istirahat.
                                         </p>
                                     </div>
                                 </div>
@@ -1038,30 +1064,46 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     </div>
                                 </div>
 
-                                {/* Step 4: Action Buttons (Roulette Trigger & Skip) */}
-                                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                                    <button
-                                        type="button"
-                                        disabled={selectedGenTeamIds.length < 2}
-                                        onClick={startRouletteDraw}
-                                        className="px-8 py-3.5 bg-gradient-to-r from-brand-600 via-orange-500 to-amber-500 hover:from-brand-700 hover:to-orange-600 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl shadow-brand-500/25 transition-all text-xs flex items-center space-x-2 active:scale-95"
-                                    >
-                                        <Shuffle className={`w-4 h-4 ${isDrawing ? 'animate-spin' : ''}`} />
-                                        <span>
-                                            {isDrawing ? 'Sedang Memutar Roulette...' : revealedMatches.length > 0 ? '🎲 Putar Ulang Roulette Undian' : '🎲 Putar Roulette & Undi Jadwal Liga'}
-                                        </span>
-                                    </button>
-
-                                    {isDrawing && (
+                                {/* Step 4: Action Controls & Mode Selector */}
+                                <div className="space-y-3 pt-2">
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        {/* Step-by-Step Button */}
                                         <button
                                             type="button"
-                                            onClick={handleSkipAnimation}
-                                            className="px-4 py-3 bg-slate-800 hover:bg-slate-900 text-slate-200 font-bold rounded-2xl text-xs flex items-center space-x-1.5 transition-colors shadow-md"
+                                            disabled={selectedGenTeamIds.length < 2 || isSpinning}
+                                            onClick={() => handleStartRoulette('step_by_step')}
+                                            className="px-6 py-3.5 bg-gradient-to-r from-brand-600 via-orange-500 to-amber-500 hover:from-brand-700 hover:to-orange-600 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl shadow-brand-500/25 transition-all text-xs flex items-center space-x-2 active:scale-95"
                                         >
-                                            <FastForward className="w-4 h-4 text-amber-400" />
-                                            <span>Lewati Animasi</span>
+                                            <Shuffle className={`w-4 h-4 ${isSpinning ? 'animate-spin' : ''}`} />
+                                            <span>
+                                                {isSpinning ? 'Sedang Mengundi Match...' : revealedMatches.length > 0 ? '🎲 Undi Ulang dari Awal' : '🎲 Mulai Undian Match per Match (Next)'}
+                                            </span>
                                         </button>
-                                    )}
+
+                                        {/* Auto-Play Button */}
+                                        <button
+                                            type="button"
+                                            disabled={selectedGenTeamIds.length < 2 || isSpinning}
+                                            onClick={() => handleStartRoulette('auto_play')}
+                                            className="px-5 py-3.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold rounded-2xl text-xs flex items-center space-x-1.5 transition-colors shadow-md active:scale-95"
+                                            title="Undi otomatis berjalan santai 2-3 detik per match"
+                                        >
+                                            <PlayCircle className="w-4 h-4 text-emerald-400" />
+                                            <span>Putar Otomatis (Santai)</span>
+                                        </button>
+
+                                        {/* Skip Button */}
+                                        {isDrawing && (
+                                            <button
+                                                type="button"
+                                                onClick={handleSkipAnimation}
+                                                className="px-4 py-3.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-2xl text-xs flex items-center space-x-1.5 transition-colors"
+                                            >
+                                                <FastForward className="w-4 h-4 text-amber-600" />
+                                                <span>Buka Semua Sekaligus</span>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* ========================================================= */}
@@ -1081,24 +1123,26 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
                                             <div className="flex items-center space-x-2">
                                                 <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                                                <span className="text-xs font-black text-amber-400 uppercase tracking-wider">
-                                                    LIVE DRAW ROULETTE • {activeMatchInDraw?.round || 'Pekan 1'}
+                                                <span className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center space-x-1.5">
+                                                    <span>LIVE DRAW ROULETTE</span>
+                                                    <span>•</span>
+                                                    <span className="text-white font-bold">{activeMatchInDraw?.round || 'Pekan 1'}</span>
                                                 </span>
                                             </div>
 
                                             <div className="text-[11px] font-bold text-slate-300">
-                                                Mengundi Match <strong className="text-white font-black">{drawCurrentIndex + 1}</strong> dari <strong className="text-white font-black">{generatedSchedule?.length || 0}</strong>
+                                                Match <strong className="text-white font-black">{drawCurrentIndex + 1}</strong> dari <strong className="text-white font-black">{generatedSchedule?.length || 0}</strong> Pertandingan
                                             </div>
                                         </div>
 
                                         {/* Progress Bar */}
-                                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                        <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                                             <motion.div
                                                 className="bg-gradient-to-r from-brand-500 via-amber-400 to-emerald-400 h-full rounded-full"
                                                 style={{
-                                                    width: `${((drawCurrentIndex + 1) / (generatedSchedule?.length || 1)) * 100}%`
+                                                    width: `${((revealedMatches.length) / (generatedSchedule?.length || 1)) * 100}%`
                                                 }}
-                                                transition={{ duration: 0.3 }}
+                                                transition={{ duration: 0.4 }}
                                             />
                                         </div>
 
@@ -1108,6 +1152,8 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                             <div className={`sm:col-span-5 p-4 rounded-2xl border transition-all flex items-center space-x-3 bg-slate-900/90 ${
                                                 roulettePhase === 'spinning_home'
                                                     ? 'border-brand-400 ring-2 ring-brand-400/50 shadow-lg shadow-brand-500/20 animate-pulse'
+                                                    : rouletteHomeTeam
+                                                    ? 'border-emerald-500/50 bg-slate-900'
                                                     : 'border-slate-700'
                                             }`}>
                                                 <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xs font-black shrink-0 overflow-hidden shadow-inner">
@@ -1122,11 +1168,11 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                         {roulettePhase === 'spinning_home' ? '🎲 MEMUTAR TUAN RUMAH...' : 'TUAN RUMAH (HOME)'}
                                                     </span>
                                                     <h4 className="text-sm font-black text-white truncate">
-                                                        {rouletteHomeTeam?.name || 'Memilih Tim...'}
+                                                        {rouletteHomeTeam?.name || 'Menunggu Undian...'}
                                                     </h4>
                                                 </div>
-                                                {roulettePhase !== 'spinning_home' && (
-                                                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                                                {roulettePhase !== 'spinning_home' && rouletteHomeTeam && (
+                                                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
                                                         ✓
                                                     </span>
                                                 )}
@@ -1134,7 +1180,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
 
                                             {/* Center VS Lightning Icon */}
                                             <div className="sm:col-span-1 text-center flex flex-col items-center justify-center">
-                                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 font-black text-xs shadow-lg shadow-amber-500/40 animate-bounce">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 font-black text-xs shadow-lg shadow-amber-500/40 animate-bounce">
                                                     VS
                                                 </div>
                                             </div>
@@ -1143,6 +1189,8 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                             <div className={`sm:col-span-5 p-4 rounded-2xl border transition-all flex items-center space-x-3 bg-slate-900/90 ${
                                                 roulettePhase === 'spinning_away'
                                                     ? 'border-brand-400 ring-2 ring-brand-400/50 shadow-lg shadow-brand-500/20 animate-pulse'
+                                                    : (roulettePhase === 'locked_away' || roulettePhase === 'match_ready' || roulettePhase === 'finished')
+                                                    ? 'border-emerald-500/50 bg-slate-900'
                                                     : 'border-slate-700'
                                             }`}>
                                                 <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xs font-black shrink-0 overflow-hidden shadow-inner">
@@ -1157,32 +1205,59 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                         {roulettePhase === 'spinning_away' ? '🎲 MEMUTAR TIM TAMU...' : 'TIM TAMU (AWAY)'}
                                                     </span>
                                                     <h4 className="text-sm font-black text-white truncate">
-                                                        {rouletteAwayTeam?.name || 'Memilih Tim...'}
+                                                        {rouletteAwayTeam?.name || 'Menunggu Undian...'}
                                                     </h4>
                                                 </div>
-                                                {roulettePhase === 'locked_away' || roulettePhase === 'match_ready' ? (
-                                                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                                                {(roulettePhase === 'locked_away' || roulettePhase === 'match_ready' || roulettePhase === 'finished') && rouletteAwayTeam && (
+                                                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
                                                         ✓
                                                     </span>
-                                                ) : null}
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Active Match Details Sub-bar */}
-                                        <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
-                                            <span className="flex items-center space-x-1">
-                                                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                                            <span className="flex items-center space-x-1.5">
+                                                <Clock className="w-4 h-4 text-amber-400" />
                                                 <span>Kick-off: <strong className="text-white">{activeMatchInDraw?.kickOffStr} - {activeMatchInDraw?.endTimeStr} WIB</strong></span>
                                             </span>
-                                            <span className="flex items-center space-x-1">
-                                                <Coffee className="w-3.5 h-3.5 text-amber-400" />
+                                            <span className="flex items-center space-x-1.5">
+                                                <Coffee className="w-4 h-4 text-amber-400" />
                                                 <span>HT: <strong className="text-white">{genHalfTimeBreak}'</strong> • Jeda: <strong className="text-white">{genPostMatchBreak}'</strong></span>
                                             </span>
-                                            <span className="flex items-center space-x-1">
-                                                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                                            <span className="flex items-center space-x-1.5">
+                                                <MapPin className="w-4 h-4 text-amber-400" />
                                                 <span className="truncate">{activeMatchInDraw?.venue}</span>
                                             </span>
                                         </div>
+
+                                        {/* NEXT MATCH MANUAL STEP BUTTON (Paling Nyaman & Dinikmati) */}
+                                        {!isSpinning && (
+                                            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                                                {hasMoreMatchesToDraw && (
+                                                    <motion.button
+                                                        initial={{ scale: 0.9, opacity: 0 }}
+                                                        animate={{ scale: 1, opacity: 1 }}
+                                                        whileHover={{ scale: 1.03 }}
+                                                        whileTap={{ scale: 0.97 }}
+                                                        type="button"
+                                                        onClick={handleDrawNextMatch}
+                                                        className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-2xl shadow-xl shadow-emerald-500/30 text-xs flex items-center justify-center space-x-2"
+                                                    >
+                                                        <span>▶️ Undi Match Berikutnya (Match {drawCurrentIndex + 2} dari {generatedSchedule?.length})</span>
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </motion.button>
+                                                )}
+
+                                                {isLastMatchJustDrawn && (
+                                                    <div className="w-full sm:w-auto px-6 py-3 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black rounded-2xl text-xs text-center flex items-center justify-center space-x-2">
+                                                        <Award className="w-4 h-4 text-emerald-400" />
+                                                        <span>🎉 Seluruh Pertandingan Selesai Diundi!</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </motion.div>
                                 )}
 
@@ -1201,8 +1276,8 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                 <div>
                                                     <p className="font-black">
                                                         {revealedMatches.length === (generatedSchedule?.length || 0)
-                                                            ? `🎉 Seluruh Jadwal Berhasil Diundi! (${revealedMatches.length} Pertandingan)`
-                                                            : `Sedang Mengundi Jadwal... (${revealedMatches.length} dari ${generatedSchedule?.length || 0} Pertandingan)`}
+                                                            ? `🎉 Seluruh Jadwal Berhasil Diundi! (${revealedMatches.length} Pertandingan Siap)`
+                                                            : `Hasil Undian Berlangsung: (${revealedMatches.length} dari ${generatedSchedule?.length || 0} Pertandingan)`}
                                                     </p>
                                                     <p className="text-[11px] text-emerald-700">
                                                         Setiap match dialokasikan {totalSlotAllocatedMinutes} menit (Main: {totalMatchPlayMinutes}' • HT: {genHalfTimeBreak}' • Jeda: {genPostMatchBreak}').
@@ -1213,7 +1288,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                             {revealedMatches.length === (generatedSchedule?.length || 0) && (
                                                 <button
                                                     type="button"
-                                                    onClick={startRouletteDraw}
+                                                    onClick={() => handleStartRoulette('step_by_step')}
                                                     className="px-3 py-1.5 bg-white text-emerald-800 font-bold rounded-xl text-xs border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center space-x-1 shrink-0"
                                                 >
                                                     <RefreshCw className="w-3.5 h-3.5" />
@@ -1268,7 +1343,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                                             {item.away_team?.logo_url ? (
                                                                                 <img src={item.away_team.logo_url} alt="" className="w-full h-full object-contain" />
                                                                             ) : (
-                                                                            item.away_team?.short_name
+                                                                                item.away_team?.short_name
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -1305,7 +1380,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     Tutup
                                 </button>
 
-                                {revealedMatches.length > 0 && !isDrawing && (
+                                {revealedMatches.length > 0 && !isSpinning && (
                                     <button
                                         type="button"
                                         disabled={isSavingGenerated}
