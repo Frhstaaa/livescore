@@ -79,6 +79,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Matches
     Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
     Route::post('/matches', [MatchController::class, 'store'])->name('matches.store');
+    Route::post('/matches/generate', [MatchController::class, 'generate'])->name('matches.generate');
+    Route::delete('/matches/competition/{competitionId}/clear', [MatchController::class, 'clearCompetitionMatches'])->name('matches.clear');
     Route::delete('/matches/{id}', [MatchController::class, 'destroy'])->name('matches.destroy');
 
     // Live Control Panel
