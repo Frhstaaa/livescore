@@ -6,7 +6,7 @@ import {
     Calendar, Plus, Trash2, Clock, MapPin, Radio, Shuffle,
     Sparkles, Trophy, Shield, Users, RefreshCw, CheckCircle2,
     X, Filter, Play, ArrowRight, Zap, Check, AlertTriangle,
-    Layers, ChevronDown, ChevronUp
+    Layers, ChevronDown, ChevronUp, Coffee, Hourglass, Timer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,7 +16,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
     const [clearModal, setClearModal] = useState({ isOpen: false, compId: null, compName: '' });
 
     // Single Match Form
-    const { data, setData, post, delete: destroy, reset, errors, processing } = useForm({
+    const { data, setData, post, reset, errors, processing } = useForm({
         competition_id: selectedCompetitionId || (competitions[0] ? competitions[0].id : ''),
         home_team_id: teams[0] ? teams[0].id : '',
         away_team_id: teams[1] ? teams[1].id : (teams[0] ? teams[0].id : ''),
@@ -37,23 +37,30 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         d.setHours(9, 0, 0, 0);
         return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     });
-    const [genInterval, setGenInterval] = useState(45); // minutes: 30, 45, 60, 90, 1440 (1 day), 10080 (7 days)
+
+    // Detailed Timing Settings
+    const [genHalfDuration, setGenHalfDuration] = useState(20); // minutes per half
+    const [genHalfTimeBreak, setGenHalfTimeBreak] = useState(5); // minutes HT break
+    const [genPostMatchBreak, setGenPostMatchBreak] = useState(10); // minutes post-match interval/break
+    const [genPekanIntervalMode, setGenPekanIntervalMode] = useState('same_day'); // 'same_day' | 'next_day' | 'weekly'
     const [genVenue, setGenVenue] = useState('Rama Futsall Kadipaten');
     const [genClearExisting, setGenClearExisting] = useState(true);
     const [generatedSchedule, setGeneratedSchedule] = useState(null);
     const [isSavingGenerated, setIsSavingGenerated] = useState(false);
-    const [previewFilterPekan, setPreviewFilterPekan] = useState('all');
 
-    // Auto-select teams when genCompId changes
+    // Auto-sync tournament settings when genCompId changes
     useEffect(() => {
         if (!genCompId) return;
         const comp = competitions.find(c => c.id === parseInt(genCompId));
-        if (comp && comp.standings && comp.standings.length > 0) {
-            const tIds = comp.standings.map(s => s.team_id).filter(Boolean);
-            setSelectedGenTeamIds(tIds);
-        } else {
-            // Default select all available teams
-            setSelectedGenTeamIds(teams.map(t => t.id));
+        if (comp) {
+            if (comp.half_duration_minutes) setGenHalfDuration(comp.half_duration_minutes);
+            if (comp.half_time_duration_minutes) setGenHalfTimeBreak(comp.half_time_duration_minutes);
+            if (comp.standings && comp.standings.length > 0) {
+                const tIds = comp.standings.map(s => s.team_id).filter(Boolean);
+                setSelectedGenTeamIds(tIds);
+            } else {
+                setSelectedGenTeamIds(teams.map(t => t.id));
+            }
         }
         setGeneratedSchedule(null);
     }, [genCompId, competitions, teams]);
@@ -66,7 +73,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         });
     };
 
-    // Delete single match
+    // Delete single match - using direct router.delete
     const handleDelete = (m) => {
         const desc = `${m.home_team?.name || 'Home'} vs ${m.away_team?.name || 'Away'} (${m.round})`;
         setDeleteModal({ isOpen: true, id: m.id, desc });
@@ -74,7 +81,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
 
     const confirmDeleteMatch = () => {
         if (!deleteModal.id) return;
-        destroy(`/admin/matches/${deleteModal.id}`, {
+        router.delete(`/admin/matches/${deleteModal.id}`, {
             onSuccess: () => setDeleteModal({ isOpen: false, id: null, desc: '' })
         });
     };
@@ -115,7 +122,12 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         setGeneratedSchedule(null);
     };
 
-    // Round-Robin Scheduling Algorithm (Berger Circle Method)
+    // Calculated timing metrics
+    const totalMatchPlayMinutes = genHalfDuration * 2;
+    const totalMatchSpanMinutes = totalMatchPlayMinutes + genHalfTimeBreak; // Play + HT
+    const totalSlotAllocatedMinutes = totalMatchSpanMinutes + genPostMatchBreak; // Play + HT + Post-Match Break
+
+    // Round-Robin Scheduling Algorithm (Berger Circle Method with Accurate Time Offsets)
     const runFairRoundRobinGeneration = () => {
         if (selectedGenTeamIds.length < 2) return;
 
@@ -139,17 +151,21 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
         const matchesPerRound = n / 2;
         const resultSchedule = [];
 
-        let currentStartTime = new Date(genStartDate).getTime();
+        const baseStartDate = new Date(genStartDate);
         let matchCounter = 1;
         const roundsToRun = genFormat === 'double' ? 2 : 1;
 
         // Berger Circle Rotation: Keep index 0 fixed, rotate index 1 to n-1
         let circle = [...participatingTeams];
+        let runningPekanStartDate = new Date(baseStartDate.getTime());
 
         for (let cycle = 1; cycle <= roundsToRun; cycle++) {
             for (let round = 0; round < totalRounds; round++) {
                 const pekanNum = (cycle - 1) * totalRounds + (round + 1);
                 const roundTitle = `Pekan ${pekanNum}`;
+
+                // Determine start time for this Pekan
+                let matchStartTime = new Date(runningPekanStartDate.getTime());
 
                 for (let i = 0; i < matchesPerRound; i++) {
                     const t1 = circle[i];
@@ -169,8 +185,9 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                         away = temp;
                     }
 
-                    const matchDateObj = new Date(currentStartTime);
-                    const localIso = new Date(matchDateObj.getTime() - matchDateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    const localIso = new Date(matchStartTime.getTime() - matchStartTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    const matchEndTime = new Date(matchStartTime.getTime() + totalMatchSpanMinutes * 60 * 1000);
+                    const nextMatchStartTime = new Date(matchStartTime.getTime() + totalSlotAllocatedMinutes * 60 * 1000);
 
                     resultSchedule.push({
                         tempId: matchCounter++,
@@ -182,11 +199,28 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                         round: roundTitle,
                         pekanNumber: pekanNum,
                         match_date: localIso,
+                        kickOffStr: matchStartTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                        endTimeStr: matchEndTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                        nextMatchTimeStr: nextMatchStartTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                         venue: genVenue || 'Rama Futsall Kadipaten',
                     });
 
-                    // Advance time for next match
-                    currentStartTime += genInterval * 60 * 1000;
+                    // Advance time for next match within the same Pekan (Play + HT + Post-Match Break)
+                    matchStartTime = new Date(matchStartTime.getTime() + totalSlotAllocatedMinutes * 60 * 1000);
+                }
+
+                // Advance running date for next Pekan based on chosen mode
+                if (genPekanIntervalMode === 'same_day') {
+                    // Continues immediately after last match of this pekan
+                    runningPekanStartDate = new Date(matchStartTime.getTime());
+                } else if (genPekanIntervalMode === 'next_day') {
+                    // Next day (+1 day), preserving original kick-off time
+                    runningPekanStartDate.setDate(runningPekanStartDate.getDate() + 1);
+                    runningPekanStartDate.setHours(baseStartDate.getHours(), baseStartDate.getMinutes(), 0, 0);
+                } else if (genPekanIntervalMode === 'weekly') {
+                    // Next week (+7 days), preserving original kick-off time
+                    runningPekanStartDate.setDate(runningPekanStartDate.getDate() + 7);
+                    runningPekanStartDate.setHours(baseStartDate.getHours(), baseStartDate.getMinutes(), 0, 0);
                 }
 
                 // Rotate circle: keep circle[0], shift others cyclically
@@ -262,7 +296,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                 Manajemen Jadwal Pertandingan
                             </h2>
                             <p className="text-xs text-gray-500 font-medium mt-0.5">
-                                Atur jadwal match secara manual atau gunakan sistem <strong>Generator Liga Otomatis</strong> untuk mengacak jadwal seluruh tim secara adil.
+                                Atur jadwal match secara manual atau gunakan sistem <strong>Generator Liga Otomatis</strong> untuk mengacak jadwal seluruh tim secara adil dengan kalkulasi waktu istirahat (Halftime & Jeda Match).
                             </p>
                         </div>
 
@@ -270,12 +304,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                             {/* Auto Generator Button */}
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setShowGenModal(true);
-                                    if (!generatedSchedule && selectedGenTeamIds.length >= 2) {
-                                        // ready
-                                    }
-                                }}
+                                onClick={() => setShowGenModal(true)}
                                 className="px-4 py-2.5 bg-gradient-to-r from-brand-600 via-orange-500 to-amber-500 hover:from-brand-700 hover:to-orange-600 text-white font-black rounded-2xl text-xs shadow-md shadow-brand-500/25 transition-all flex items-center space-x-2 active:scale-95"
                             >
                                 <Zap className="w-4 h-4 fill-white" />
@@ -610,7 +639,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                             Generator Jadwal Liga Round-Robin
                                         </h3>
                                         <p className="text-xs text-slate-300 font-medium">
-                                            Sistem pengacakan adil mempertemukan semua tim tanpa bentrok jadwal.
+                                            Pengacakan jadwal adil dengan kalkulasi otomatis durasi main, halftime, dan jeda istirahat antar pertandingan.
                                         </p>
                                     </div>
                                 </div>
@@ -625,7 +654,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                             </div>
 
                             {/* Modal Body */}
-                            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+                            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
                                 
                                 {/* Step 1: Configuration Form */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 text-xs">
@@ -685,20 +714,17 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                         />
                                     </div>
 
-                                    {/* Interval Between Matches */}
+                                    {/* Pekan Interval Mode */}
                                     <div>
-                                        <label className="block font-bold text-gray-700 mb-1">Jeda Waktu Antar Pertandingan</label>
+                                        <label className="block font-bold text-gray-700 mb-1">Pola Jadwal Antar Pekan</label>
                                         <select
-                                            value={genInterval}
-                                            onChange={(e) => { setGenInterval(parseInt(e.target.value)); setGeneratedSchedule(null); }}
+                                            value={genPekanIntervalMode}
+                                            onChange={(e) => { setGenPekanIntervalMode(e.target.value); setGeneratedSchedule(null); }}
                                             className="w-full p-2.5 bg-white border border-gray-200 rounded-xl font-bold text-gray-900 outline-none"
                                         >
-                                            <option value={30}>⏱️ 30 Menit (Futsal Cepat)</option>
-                                            <option value={45}>⏱️ 45 Menit (Standar Turnamen Futsal)</option>
-                                            <option value={60}>⏱️ 60 Menit (1 Jam Per Match)</option>
-                                            <option value={90}>⏱️ 90 Menit</option>
-                                            <option value={1440}>📅 1 Hari Sekali (Harian)</option>
-                                            <option value={10080}>🗓️ 7 Hari Sekali (Mingguan / Weekend)</option>
+                                            <option value="same_day">⚡ Lanjut di Hari yang Sama (Turnamen 1 Hari Penuh)</option>
+                                            <option value="next_day">📅 Ganti Hari Berikutnya (+1 Hari Setiap Pekan Baru)</option>
+                                            <option value="weekly">🗓️ Mingguan / Weekend (+7 Hari Setiap Pekan Baru)</option>
                                         </select>
                                     </div>
 
@@ -715,7 +741,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     </div>
 
                                     {/* Clear Existing Checkbox */}
-                                    <div className="flex items-center space-x-2 pt-5">
+                                    <div className="flex items-center space-x-2 pt-4">
                                         <input
                                             type="checkbox"
                                             id="genClearExisting"
@@ -729,7 +755,132 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     </div>
                                 </div>
 
-                                {/* Step 2: Select Participating Teams */}
+                                {/* Step 2: Detailed Duration & Break Time Configuration Card */}
+                                <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3 text-xs">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-black text-amber-900 uppercase tracking-wider text-[11px] flex items-center">
+                                            <Timer className="w-4 h-4 mr-1.5 text-amber-600" />
+                                            Kalkulasi Waktu Bermain & Istirahat (Mulai 5 Menit)
+                                        </h4>
+                                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
+                                            Total Slot: {totalSlotAllocatedMinutes} Menit / Match
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {/* Durasi Per Babak */}
+                                        <div className="bg-white p-3 rounded-xl border border-amber-200/60 shadow-xs">
+                                            <label className="block font-bold text-gray-800 text-[11px] mb-1 flex items-center justify-between">
+                                                <span>⏱️ Durasi Per Babak</span>
+                                                <span className="text-brand-600 font-black">{genHalfDuration}' mnt</span>
+                                            </label>
+                                            <div className="relative mb-1.5">
+                                                <input
+                                                    type="number"
+                                                    min={5}
+                                                    max={90}
+                                                    value={genHalfDuration}
+                                                    onChange={(e) => { setGenHalfDuration(parseInt(e.target.value) || 5); setGeneratedSchedule(null); }}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg font-black text-center text-gray-900 text-xs"
+                                                />
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {[5, 10, 15, 20, 25, 30, 45].map(m => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => { setGenHalfDuration(m); setGeneratedSchedule(null); }}
+                                                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${genHalfDuration === m ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                    >
+                                                        {m}'
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 block mt-1">Total main 2 babak = {totalMatchPlayMinutes} menit</span>
+                                        </div>
+
+                                        {/* Istirahat Half Time */}
+                                        <div className="bg-white p-3 rounded-xl border border-amber-200/60 shadow-xs">
+                                            <label className="block font-bold text-gray-800 text-[11px] mb-1 flex items-center justify-between">
+                                                <span>☕ Istirahat Halftime (HT)</span>
+                                                <span className="text-amber-600 font-black">{genHalfTimeBreak}' mnt</span>
+                                            </label>
+                                            <div className="relative mb-1.5">
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={60}
+                                                    value={genHalfTimeBreak}
+                                                    onChange={(e) => { setGenHalfTimeBreak(parseInt(e.target.value) || 5); setGeneratedSchedule(null); }}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg font-black text-center text-gray-900 text-xs"
+                                                />
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {[2, 3, 5, 10, 15].map(m => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => { setGenHalfTimeBreak(m); setGeneratedSchedule(null); }}
+                                                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${genHalfTimeBreak === m ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                    >
+                                                        {m}'
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 block mt-1">Waktu jeda antar babak</span>
+                                        </div>
+
+                                        {/* Jeda Istirahat Antar Pertandingan */}
+                                        <div className="bg-white p-3 rounded-xl border border-amber-200/60 shadow-xs">
+                                            <label className="block font-bold text-gray-800 text-[11px] mb-1 flex items-center justify-between">
+                                                <span>🔄 Jeda Antar Match</span>
+                                                <span className="text-teal-600 font-black">{genPostMatchBreak}' mnt</span>
+                                            </label>
+                                            <div className="relative mb-1.5">
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    max={120}
+                                                    value={genPostMatchBreak}
+                                                    onChange={(e) => { setGenPostMatchBreak(parseInt(e.target.value) || 0); setGeneratedSchedule(null); }}
+                                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg font-black text-center text-gray-900 text-xs"
+                                                />
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {[0, 5, 10, 15, 20, 30].map(m => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => { setGenPostMatchBreak(m); setGeneratedSchedule(null); }}
+                                                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${genPostMatchBreak === m ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                    >
+                                                        {m}'
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 block mt-1">Istirahat sebelum match berikutnya</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Breakdown Formula Summary */}
+                                    <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                                        <div className="flex flex-wrap items-center gap-1.5 text-gray-700 font-bold">
+                                            <span>Rincian Waktu Match:</span>
+                                            <span className="px-2 py-0.5 rounded bg-brand-50 text-brand-700">Babak 1 ({genHalfDuration}')</span>
+                                            <span>+</span>
+                                            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800">Istirahat HT ({genHalfTimeBreak}')</span>
+                                            <span>+</span>
+                                            <span className="px-2 py-0.5 rounded bg-brand-50 text-brand-700">Babak 2 ({genHalfDuration}')</span>
+                                            <span>+</span>
+                                            <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-700">Jeda Antar Match ({genPostMatchBreak}')</span>
+                                        </div>
+                                        <div className="font-black text-amber-900">
+                                            = {totalSlotAllocatedMinutes} Menit Per Match Slot
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Step 3: Select Participating Teams */}
                                 <div className="space-y-2.5">
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs font-black text-gray-900 flex items-center">
@@ -781,7 +932,7 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                 </div>
 
                                 {/* Generate Button Action */}
-                                <div className="text-center pt-2">
+                                <div className="text-center pt-1">
                                     <button
                                         type="button"
                                         disabled={selectedGenTeamIds.length < 2}
@@ -790,12 +941,12 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                     >
                                         <Shuffle className="w-4 h-4" />
                                         <span>
-                                            {generatedSchedule ? '🎲 Acak Ulang (Re-Shuffle Pairing)' : '🎲 Acak & Kalkulasi Jadwal Adil'}
+                                            {generatedSchedule ? '🎲 Acak Ulang (Re-Shuffle Pairing & Waktu)' : '🎲 Acak & Kalkulasi Jadwal + Waktu Istirahat'}
                                         </span>
                                     </button>
                                 </div>
 
-                                {/* Step 3: Generated Schedule Preview */}
+                                {/* Step 4: Generated Schedule Preview */}
                                 {generatedSchedule && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 15 }}
@@ -807,10 +958,10 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                                                 <div>
                                                     <p className="font-black">
-                                                        Jadwal Adil Berhasil Dikalkulasi! ({generatedSchedule.length} Pertandingan)
+                                                        Jadwal Adil & Waktu Istirahat Siap! ({generatedSchedule.length} Pertandingan)
                                                     </p>
                                                     <p className="text-[11px] text-emerald-700">
-                                                        Setiap tim dipastikan bermain 1 kali per pekan secara adil dan merata.
+                                                        Setiap match dialokasikan {totalSlotAllocatedMinutes} menit (Main: {totalMatchPlayMinutes}' • HT: {genHalfTimeBreak}' • Jeda: {genPostMatchBreak}').
                                                     </p>
                                                 </div>
                                             </div>
@@ -838,40 +989,52 @@ export default function AdminMatches({ matches = [], competitions = [], teams = 
                                                             <span className="text-gray-400 font-normal">({matchItems.length} Match)</span>
                                                         </span>
                                                         <span className="text-[10px] text-gray-500 font-bold">
-                                                            ⏱️ {new Date(matchItems[0]?.match_date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                                                            📅 {new Date(matchItems[0]?.match_date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
                                                         </span>
                                                     </div>
 
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                                         {matchItems.map((item, idx) => (
                                                             <div
                                                                 key={idx}
-                                                                className="bg-white p-3 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between text-xs"
+                                                                className="bg-white p-3 rounded-xl border border-gray-200 shadow-xs space-y-2 text-xs"
                                                             >
-                                                                <div className="flex items-center space-x-2 min-w-0">
-                                                                    <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-[9px] font-black shrink-0 overflow-hidden">
-                                                                        {item.home_team?.logo_url ? (
-                                                                            <img src={item.home_team.logo_url} alt="" className="w-full h-full object-contain" />
-                                                                        ) : (
-                                                                            item.home_team?.short_name
-                                                                        )}
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-2 min-w-0">
+                                                                        <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-[9px] font-black shrink-0 overflow-hidden">
+                                                                            {item.home_team?.logo_url ? (
+                                                                                <img src={item.home_team.logo_url} alt="" className="w-full h-full object-contain" />
+                                                                            ) : (
+                                                                                item.home_team?.short_name
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="font-bold text-gray-900 truncate">{item.home_team?.name}</span>
                                                                     </div>
-                                                                    <span className="font-bold text-gray-900 truncate">{item.home_team?.name}</span>
+
+                                                                    <span className="text-[10px] font-black text-brand-600 px-2 py-0.5 bg-brand-50 rounded mx-2 shrink-0">
+                                                                        VS
+                                                                    </span>
+
+                                                                    <div className="flex items-center justify-end space-x-2 min-w-0 text-right">
+                                                                        <span className="font-bold text-gray-900 truncate">{item.away_team?.name}</span>
+                                                                        <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-[9px] font-black shrink-0 overflow-hidden">
+                                                                            {item.away_team?.logo_url ? (
+                                                                                <img src={item.away_team.logo_url} alt="" className="w-full h-full object-contain" />
+                                                                            ) : (
+                                                                                item.away_team?.short_name
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
 
-                                                                <span className="text-[10px] font-black text-brand-600 px-2 py-0.5 bg-brand-50 rounded mx-2 shrink-0">
-                                                                    VS
-                                                                </span>
-
-                                                                <div className="flex items-center justify-end space-x-2 min-w-0 text-right">
-                                                                    <span className="font-bold text-gray-900 truncate">{item.away_team?.name}</span>
-                                                                    <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-[9px] font-black shrink-0 overflow-hidden">
-                                                                        {item.away_team?.logo_url ? (
-                                                                            <img src={item.away_team.logo_url} alt="" className="w-full h-full object-contain" />
-                                                                        ) : (
-                                                                            item.away_team?.short_name
-                                                                        )}
-                                                                    </div>
+                                                                {/* Time details badge per match */}
+                                                                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-500 font-semibold">
+                                                                    <span className="text-brand-600 font-black">
+                                                                        ⏱️ Kick-off: {item.kickOffStr} - {item.endTimeStr}
+                                                                    </span>
+                                                                    <span className="text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded font-bold">
+                                                                        +Jeda {genPostMatchBreak}'
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         ))}
