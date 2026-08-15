@@ -1,4 +1,30 @@
 <IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
     RewriteEngine On
-    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Hapus "/public" dari URL jika ada yang mengetiknya secara manual (SEO Friendly)
+    RewriteCond %{THE_REQUEST} ^GET\ /public/
+    RewriteRule ^public/(.*) /$1 [R=301,L]
+
+    # Jika file/folder tidak ada di root directory (public_html)...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    
+    # ...Cek apakah file tersebut ada di dalam folder /public/ (misal aset gambar, css, js)
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -d
+    # Jika ada, arahkan request ke folder /public/ secara internal tanpa mengubah URL
+    RewriteRule ^(.*)$ public/$1 [L,QSA]
+
+    # Jika file tidak ada sama sekali, serahkan ke index.php Laravel di dalam folder public/
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ public/index.php [L,QSA]
+
+    # Handle Authorization Header untuk API
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 </IfModule>
