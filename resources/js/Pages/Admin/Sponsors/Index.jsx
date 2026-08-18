@@ -8,10 +8,13 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
     const [editingSponsor, setEditingSponsor] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
+    const [previewLogo, setPreviewLogo] = useState(null);
+
     // Form Sponsor
     const sponsorForm = useForm({
         name: '',
         logo_url: '',
+        logo_file: null,
         website_url: '',
         tier: 'gold',
         is_active: true,
@@ -29,14 +32,20 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
                 ...data,
                 _method: 'put',
             })).post(`/admin/sponsors/${editingSponsor.id}`, {
+                preserveScroll: true,
                 onSuccess: () => {
                     sponsorForm.reset();
                     setEditingSponsor(null);
+                    setPreviewLogo(null);
                 }
             });
         } else {
             sponsorForm.post('/admin/sponsors', {
-                onSuccess: () => sponsorForm.reset()
+                preserveScroll: true,
+                onSuccess: () => {
+                    sponsorForm.reset();
+                    setPreviewLogo(null);
+                }
             });
         }
     };
@@ -50,9 +59,11 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
 
     const handleEditSponsor = (s) => {
         setEditingSponsor(s);
+        setPreviewLogo(null);
         sponsorForm.setData({
             name: s.name,
             logo_url: s.logo_url || '',
+            logo_file: null,
             website_url: s.website_url || '',
             tier: s.tier,
             is_active: s.is_active,
@@ -143,31 +154,52 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
                             </div>
 
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">Logo Sponsor (Gambar/PNG)</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => sponsorForm.setData('logo_url', e.target.files[0])}
-                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
-                                />
-                                {editingSponsor && typeof sponsorForm.data.logo_url === 'string' && sponsorForm.data.logo_url && (
-                                    <div className="mt-2 text-[10px] text-gray-500 flex items-center">
-                                        <img src={sponsorForm.data.logo_url} alt="Current logo" className="h-8 object-contain mr-2 border rounded" />
-                                        <span>Logo saat ini</span>
-                                    </div>
-                                )}
+                                 <label className="block font-bold text-gray-700 mb-1">Logo Sponsor (Gambar/PNG)</label>
+                                 <input
+                                     type="file"
+                                     accept="image/*"
+                                     onChange={(e) => {
+                                         const file = e.target.files[0];
+                                         if (file) {
+                                             sponsorForm.setData('logo_file', file);
+                                             setPreviewLogo(URL.createObjectURL(file));
+                                         }
+                                     }}
+                                     className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
+                                 />
+                                 {previewLogo ? (
+                                     <div className="mt-2 text-[10px] text-emerald-600 font-bold flex items-center gap-2">
+                                         <img src={previewLogo} alt="Pratinjau baru" className="h-9 w-12 object-contain bg-white border border-emerald-300 rounded p-0.5" />
+                                         <span>Pratinjau logo baru dipilih</span>
+                                     </div>
+                                 ) : editingSponsor && sponsorForm.data.logo_url ? (
+                                     <div className="mt-2 text-[10px] text-gray-500 font-bold flex items-center gap-2">
+                                         <img src={sponsorForm.data.logo_url} alt="Current logo" className="h-8 object-contain bg-white border border-gray-200 rounded p-0.5" />
+                                         <span>Logo saat ini (Biarkan kosong jika tidak diganti)</span>
+                                     </div>
+                                 ) : null}
+                                 {sponsorForm.errors.logo_file && (
+                                     <p className="text-red-500 text-[10px] mt-1 font-bold">{sponsorForm.errors.logo_file}</p>
+                                 )}
                             </div>
 
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">URL Website Sponsor (Opsional)</label>
-                                <input
-                                    type="url"
-                                    value={sponsorForm.data.website_url}
-                                    onChange={(e) => sponsorForm.setData('website_url', e.target.value)}
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900"
-                                    placeholder="https://sponsor.com"
-                                />
+                                 <label className="block font-bold text-gray-700 mb-1">URL Website Sponsor (Opsional)</label>
+                                 <input
+                                     type="text"
+                                     value={sponsorForm.data.website_url}
+                                     onChange={(e) => sponsorForm.setData('website_url', e.target.value)}
+                                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900"
+                                     placeholder="https://sponsor.com"
+                                 />
+                                 {sponsorForm.errors.website_url && (
+                                     <p className="text-red-500 text-[10px] mt-1 font-bold">{sponsorForm.errors.website_url}</p>
+                                 )}
                             </div>
+
+                            {sponsorForm.errors.name && (
+                                <p className="text-red-500 text-[10px] font-bold">{sponsorForm.errors.name}</p>
+                            )}
 
                             <div className="flex space-x-2 pt-2">
                                 <button
