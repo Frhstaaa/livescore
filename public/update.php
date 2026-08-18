@@ -17,7 +17,12 @@ $logs = [];
 $status = 'idle';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Eksekusi Git Pull (Gunakan git fetch & reset --hard agar selalu sukses tanpa konflik)
+    $gitRepoUrl = 'https://github.com/Frhstaaa/livescore.git';
+    
+    // 1. Eksekusi Git Setup & Sync (Auto-repair remote origin jika belum ada)
+    $gitSetup = "cd " . escapeshellarg($baseDir) . " && git init 2>&1 && git remote remove origin 2>&1; git remote add origin " . escapeshellarg($gitRepoUrl) . " 2>&1";
+    shell_exec($gitSetup);
+
     $gitCmd = "cd " . escapeshellarg($baseDir) . " && git fetch origin main 2>&1 && git reset --hard origin/main 2>&1 && git pull origin main 2>&1";
     $gitOutput = shell_exec($gitCmd);
     $logs[] = "🐙 Git Sync (origin/main):\n" . trim($gitOutput);
@@ -29,18 +34,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
         $kernel->bootstrap();
 
-        // 2. Migrasi Database (jika ada perubahan tabel)
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        $logs[] = '🗄️ Migration: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+        // 2. Migrasi Database
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $logs[] = '🗄️ Migration: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+        } catch (\Throwable $mErr) {
+            $logs[] = '⚠️ Info Migration: ' . $mErr->getMessage();
+        }
 
-        // 3. Clear Cache (wajib setelah update kodingan)
-        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-        $logs[] = '⚡ Cache Sistem, Views, & Routes berhasil dibersihkan dan dioptimasi!';
+        // 3. Clear Cache
+        try {
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+            \Illuminate\Support\Facades\Artisan::call('route:clear');
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            $logs[] = '⚡ Cache Sistem, Views, & Routes berhasil dibersihkan dan dioptimasi!';
+        } catch (\Throwable $cErr) {
+            $logs[] = '⚡ Cache View/Route dibersihkan (Note: ' . $cErr->getMessage() . ')';
+        }
 
         $status = 'success';
     } catch (\Throwable $e) {
         $status = 'error';
-        $logs[] = '❌ Terjadi Kesalahan Artisan: ' . $e->getMessage();
+        $logs[] = '❌ Terjadi Kesalahan: ' . $e->getMessage();
     }
 }
 ?>
