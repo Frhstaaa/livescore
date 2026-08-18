@@ -31,17 +31,17 @@ class SponsorController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'logo_url' => 'nullable|string',
-            'logo_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'tier' => 'required|in:main,gold,silver,partner,media',
             'website_url' => 'nullable|string',
             'order' => 'nullable|integer',
         ]);
 
         if ($request->hasFile('logo_file')) {
+            $request->validate([
+                'logo_file' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            ]);
             $validated['logo_url'] = \App\Helpers\ImageHelper::convertToWebp($request->file('logo_file'), 'uploads/sponsors');
         }
-
-        unset($validated['logo_file']);
 
         $this->sponsorRepo->createSponsor($validated);
         return back()->with('message', 'Sponsor berhasil ditambahkan');
@@ -52,17 +52,17 @@ class SponsorController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'logo_url' => 'nullable|string',
-            'logo_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'tier' => 'required|in:main,gold,silver,partner,media',
             'website_url' => 'nullable|string',
             'order' => 'nullable|integer',
         ]);
 
         if ($request->hasFile('logo_file')) {
+            $request->validate([
+                'logo_file' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            ]);
             $validated['logo_url'] = \App\Helpers\ImageHelper::convertToWebp($request->file('logo_file'), 'uploads/sponsors');
         }
-
-        unset($validated['logo_file']);
 
         $this->sponsorRepo->updateSponsor($id, $validated);
         return back()->with('message', 'Sponsor berhasil diperbarui');

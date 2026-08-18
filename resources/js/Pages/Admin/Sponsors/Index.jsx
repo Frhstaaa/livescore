@@ -28,10 +28,8 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
     const submitSponsor = (e) => {
         e.preventDefault();
         if (editingSponsor) {
-            sponsorForm.transform((data) => ({
-                ...data,
-                _method: 'put',
-            })).post(`/admin/sponsors/${editingSponsor.id}`, {
+            sponsorForm.post(`/admin/sponsors/${editingSponsor.id}`, {
+                headers: { 'X-HTTP-Method-Override': 'PUT' },
                 preserveScroll: true,
                 onSuccess: () => {
                     sponsorForm.reset();
