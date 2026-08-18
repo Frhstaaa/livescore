@@ -30,11 +30,15 @@ class SponsorController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'logo_url' => 'nullable|string',
+            'logo_url' => 'nullable',
             'tier' => 'required|in:main,gold,silver,partner,media',
             'website_url' => 'nullable|string|url',
             'order' => 'nullable|integer',
         ]);
+
+        if ($request->hasFile('logo_url')) {
+            $validated['logo_url'] = \App\Helpers\ImageHelper::convertToWebp($request->file('logo_url'), 'uploads/sponsors');
+        }
 
         $this->sponsorRepo->createSponsor($validated);
         return back()->with('message', 'Sponsor berhasil ditambahkan');
@@ -44,11 +48,18 @@ class SponsorController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'logo_url' => 'nullable|string',
+            'logo_url' => 'nullable',
             'tier' => 'required|in:main,gold,silver,partner,media',
             'website_url' => 'nullable|string|url',
             'order' => 'nullable|integer',
         ]);
+
+        if ($request->hasFile('logo_url')) {
+            $validated['logo_url'] = \App\Helpers\ImageHelper::convertToWebp($request->file('logo_url'), 'uploads/sponsors');
+        } elseif ($request->input('logo_url') === null && !$request->hasFile('logo_url')) {
+            // Keep existing logo if not explicitly removed
+            unset($validated['logo_url']);
+        }
 
         $this->sponsorRepo->updateSponsor($id, $validated);
         return back()->with('message', 'Sponsor berhasil diperbarui');

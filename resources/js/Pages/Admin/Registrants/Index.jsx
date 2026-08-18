@@ -123,7 +123,11 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         
         // Shuffle initial pool order
         const shuffled = [...pool].sort(() => Math.random() - 0.5);
-        setDraftQueue(shuffled);
+        
+        // Put GKs first in the queue to guarantee even distribution across teams
+        const gks = shuffled.filter(p => p.position === 'GK');
+        const nonGks = shuffled.filter(p => p.position !== 'GK');
+        setDraftQueue([...gks, ...nonGks]);
         setCurrentDraftIndex(0);
         setRouletteStage('setup');
         setAutoSpin(false);
@@ -172,12 +176,26 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         const player = draftQueue[queueIdx];
         const numTeams = currentTeams.length;
 
-        // Balanced team selection (find teams with fewest players)
-        const minPlayers = Math.min(...currentTeams.map(t => t.players.length));
-        const eligibleTeams = currentTeams
-            .map((t, idx) => ({ idx, count: t.players.length }))
-            .filter(t => t.count === minPlayers)
-            .map(t => t.idx);
+        // Balanced team selection
+        let eligibleTeams = [];
+
+        if (player.position === 'GK') {
+            // Distribute GKs evenly
+            const gkCounts = currentTeams.map(t => t.players.filter(p => p.position === 'GK').length);
+            const minGKs = Math.min(...gkCounts);
+            const teamsWithMinGKs = currentTeams.map((t, idx) => ({ idx, count: t.players.length, gkCount: gkCounts[idx] })).filter(t => t.gkCount === minGKs);
+            
+            // From teams that need a GK most, pick those with fewest players overall
+            const minPlayersInMinGKs = Math.min(...teamsWithMinGKs.map(t => t.count));
+            eligibleTeams = teamsWithMinGKs.filter(t => t.count === minPlayersInMinGKs).map(t => t.idx);
+        } else {
+            // Find teams with fewest players overall
+            const minPlayers = Math.min(...currentTeams.map(t => t.players.length));
+            eligibleTeams = currentTeams
+                .map((t, idx) => ({ idx, count: t.players.length }))
+                .filter(t => t.count === minPlayers)
+                .map(t => t.idx);
+        }
         
         const targetTeamIndex = eligibleTeams[Math.floor(Math.random() * eligibleTeams.length)];
 
@@ -249,9 +267,20 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         let teamsCopy = draftedTeams.map(t => ({ ...t, players: [...t.players] }));
         for (let i = currentDraftIndex; i < draftQueue.length; i++) {
             const player = draftQueue[i];
-            const minPlayers = Math.min(...teamsCopy.map(t => t.players.length));
-            const eligible = teamsCopy.map((t, idx) => ({ idx, count: t.players.length })).filter(t => t.count === minPlayers);
-            const chosen = eligible[Math.floor(Math.random() * eligible.length)].idx;
+            let eligible = [];
+            
+            if (player.position === 'GK') {
+                const gkCounts = teamsCopy.map(t => t.players.filter(p => p.position === 'GK').length);
+                const minGKs = Math.min(...gkCounts);
+                const teamsWithMinGKs = teamsCopy.map((t, idx) => ({ idx, count: t.players.length, gkCount: gkCounts[idx] })).filter(t => t.gkCount === minGKs);
+                const minPlayersInMinGKs = Math.min(...teamsWithMinGKs.map(t => t.count));
+                eligible = teamsWithMinGKs.filter(t => t.count === minPlayersInMinGKs).map(t => t.idx);
+            } else {
+                const minPlayers = Math.min(...teamsCopy.map(t => t.players.length));
+                eligible = teamsCopy.map((t, idx) => ({ idx, count: t.players.length })).filter(t => t.count === minPlayers).map(t => t.idx);
+            }
+            
+            const chosen = eligible[Math.floor(Math.random() * eligible.length)];
             teamsCopy[chosen].players.push(player);
         }
 
@@ -599,6 +628,9 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                     <div>
                                         <h3 className="text-base font-black tracking-tight flex items-center gap-2">
                                             ROULETTE DRAFT PEMBAGIAN TIM
+                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-brand-500 text-white rounded-full">
+                                                PRO
+                                            </span>
                                             <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-400 text-amber-950 rounded-full">
                                                 Interactive
                                             </span>

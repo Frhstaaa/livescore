@@ -25,7 +25,10 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
     const submitSponsor = (e) => {
         e.preventDefault();
         if (editingSponsor) {
-            sponsorForm.put(`/admin/sponsors/${editingSponsor.id}`, {
+            sponsorForm.transform((data) => ({
+                ...data,
+                _method: 'put',
+            })).post(`/admin/sponsors/${editingSponsor.id}`, {
                 onSuccess: () => {
                     sponsorForm.reset();
                     setEditingSponsor(null);
@@ -140,14 +143,19 @@ export default function AdminSponsors({ sponsors, activeCompetition }) {
                             </div>
 
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">URL Logo Sponsor (Gambar/PNG)</label>
+                                <label className="block font-bold text-gray-700 mb-1">Logo Sponsor (Gambar/PNG)</label>
                                 <input
-                                    type="text"
-                                    value={sponsorForm.data.logo_url}
-                                    onChange={(e) => sponsorForm.setData('logo_url', e.target.value)}
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900"
-                                    placeholder="https://domain.com/logo.png"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => sponsorForm.setData('logo_url', e.target.files[0])}
+                                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
                                 />
+                                {editingSponsor && typeof sponsorForm.data.logo_url === 'string' && sponsorForm.data.logo_url && (
+                                    <div className="mt-2 text-[10px] text-gray-500 flex items-center">
+                                        <img src={sponsorForm.data.logo_url} alt="Current logo" className="h-8 object-contain mr-2 border rounded" />
+                                        <span>Logo saat ini</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div>

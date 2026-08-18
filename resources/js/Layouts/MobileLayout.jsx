@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Trophy, Award, Star, Search, Activity, Info, Newspaper, UserPlus } from 'lucide-react';
+import { Trophy, Award, Star, Activity, Info, Newspaper, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PwaInstallPrompt from '@/Components/PwaInstallPrompt';
 
 export default function MobileLayout({ children }) {
     const { url } = usePage();
@@ -45,12 +46,6 @@ export default function MobileLayout({ children }) {
                     </div>
 
                     <div className="flex items-center space-x-1">
-                        <motion.button
-                            whileTap={{ scale: 0.9 }}
-                            className="p-2 rounded-full transition-colors text-gray-500 hover:text-brand-500 hover:bg-brand-50"
-                        >
-                            <Search className="w-5 h-5" />
-                        </motion.button>
                         
                         {/* Header Registration link button */}
                         <Link href="/register" title="Pendaftaran Pemain">
@@ -114,6 +109,8 @@ export default function MobileLayout({ children }) {
                     })}
                 </nav>
 
+                {/* PWA Install Prompt Component */}
+                <PwaInstallPrompt />
             </div>
         </div>
     );

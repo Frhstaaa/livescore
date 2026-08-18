@@ -26,6 +26,7 @@ class ImageHelper
 
         if ($image !== false) {
             // Convert transparent PNG/GIF background preservation
+            \imagepalettetotruecolor($image);
             \imagealphablending($image, true);
             \imagesavealpha($image, true);
 
