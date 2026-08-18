@@ -17,10 +17,10 @@ $logs = [];
 $status = 'idle';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Eksekusi Git Pull terlebih dahulu (Sebelum Load Laravel)
-    // Anggap branch utamanya adalah "main"
-    $gitOutput = shell_exec("cd " . escapeshellarg($baseDir) . " && git pull origin main 2>&1");
-    $logs[] = "🐙 Git Pull:\n" . trim($gitOutput);
+    // 1. Eksekusi Git Pull (Gunakan git fetch & reset --hard agar selalu sukses tanpa konflik)
+    $gitCmd = "cd " . escapeshellarg($baseDir) . " && git fetch origin main 2>&1 && git reset --hard origin/main 2>&1 && git pull origin main 2>&1";
+    $gitOutput = shell_exec($gitCmd);
+    $logs[] = "🐙 Git Sync (origin/main):\n" . trim($gitOutput);
 
     // Bootstrap Laravel untuk menjalankan Artisan commands
     try {
