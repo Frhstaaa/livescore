@@ -423,8 +423,8 @@ export default function PlayersIndex({
                                             }, { preserveState: true, preserveScroll: true })}
                                             className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border flex items-center space-x-2 shrink-0 ${
                                                 isSelected
-                                                    ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-brand-400/50'
-                                                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                                    ? 'bg-gradient-to-r from-brand-500 to-orange-600 text-white border-brand-500 shadow-md shadow-brand-500/25 font-black ring-2 ring-orange-300'
+                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-brand-300 hover:bg-brand-50/50'
                                             }`}
                                         >
                                             {t.logo_url ? (
@@ -452,14 +452,14 @@ export default function PlayersIndex({
                                 {/* ========================================== */}
                                 {/* 🏆 TEAM OVERVIEW & TOURNAMENT STATS CARD    */}
                                 {/* ========================================== */}
-                                <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden border border-slate-800">
+                                <div className="bg-gradient-to-br from-brand-600 via-orange-600 to-amber-600 rounded-3xl p-5 text-white shadow-xl shadow-brand-500/25 relative overflow-hidden border border-orange-400/40">
                                     {/* Background decorative glow */}
-                                    <div className="absolute top-0 right-0 w-48 h-48 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+                                    <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
                                     {/* Team Header Top */}
-                                    <div className="flex items-center justify-between pb-4 border-b border-slate-800 relative z-10">
+                                    <div className="flex items-center justify-between pb-4 border-b border-white/20 relative z-10">
                                         <div className="flex items-center space-x-3.5">
-                                            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-1 flex items-center justify-center shrink-0 shadow-lg">
+                                            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 p-1 flex items-center justify-center shrink-0 shadow-lg">
                                                 {selectedTeam.logo_url ? (
                                                     <img src={selectedTeam.logo_url} alt="" className="w-full h-full object-contain" />
                                                 ) : (
@@ -470,11 +470,11 @@ export default function PlayersIndex({
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <h3 className="text-lg font-black text-white tracking-tight">{selectedTeam.name}</h3>
-                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 text-brand-300 text-[10px] font-black border border-white/10">
+                                                    <span className="px-2 py-0.5 rounded-md bg-white/25 text-white text-[10px] font-black border border-white/30 backdrop-blur-xs">
                                                         {selectedTeam.short_name}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                                                <p className="text-xs text-orange-100 font-medium mt-0.5">
                                                     Pelatih: <span className="text-white font-bold">{selectedTeam.coach_name || 'Official Tim'}</span>
                                                 </p>
                                             </div>
@@ -483,12 +483,12 @@ export default function PlayersIndex({
                                         {/* Standing Position Badge */}
                                         <div className="text-right">
                                             {selectedTeam.standing ? (
-                                                <div className="px-3 py-1 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 text-right">
-                                                    <span className="text-[10px] uppercase font-bold tracking-wider block">Klasemen</span>
-                                                    <span className="text-sm font-black">Posisi #{selectedTeam.standing.position}</span>
+                                                <div className="px-3 py-1 rounded-xl bg-white/20 border border-white/30 text-white text-right backdrop-blur-xs shadow-xs">
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider block text-orange-100">Klasemen</span>
+                                                    <span className="text-sm font-black text-white">Posisi #{selectedTeam.standing.position}</span>
                                                 </div>
                                             ) : (
-                                                <span className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-bold text-slate-400">
+                                                <span className="px-2.5 py-1 rounded-full bg-white/20 text-[10px] font-bold text-white backdrop-blur-xs">
                                                     {selectedTeam.players?.length || 0} Pemain
                                                 </span>
                                             )}
@@ -497,34 +497,34 @@ export default function PlayersIndex({
 
                                     {/* Standings Details Table Row */}
                                     {selectedTeam.standing && (
-                                        <div className="py-3 border-b border-slate-800/80 grid grid-cols-7 text-center text-xs">
+                                        <div className="py-3 border-b border-white/20 grid grid-cols-7 text-center text-xs">
                                             <div>
-                                                <span className="text-[10px] text-slate-400 block font-bold">MAIN</span>
+                                                <span className="text-[10px] text-orange-100 block font-bold">MAIN</span>
                                                 <span className="font-black text-white">{selectedTeam.standing.played}</span>
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-emerald-400 block font-bold">MENANG</span>
+                                                <span className="text-[10px] text-orange-100 block font-bold">MENANG</span>
                                                 <span className="font-black text-white">{selectedTeam.standing.won}</span>
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-amber-400 block font-bold">SERI</span>
+                                                <span className="text-[10px] text-orange-100 block font-bold">SERI</span>
                                                 <span className="font-black text-white">{selectedTeam.standing.drawn}</span>
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-rose-400 block font-bold">KALAH</span>
+                                                <span className="text-[10px] text-orange-100 block font-bold">KALAH</span>
                                                 <span className="font-black text-white">{selectedTeam.standing.lost}</span>
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-slate-400 block font-bold">GOL</span>
+                                                <span className="text-[10px] text-orange-100 block font-bold">GOL</span>
                                                 <span className="font-black text-white">{selectedTeam.standing.goals_for}:{selectedTeam.standing.goals_against}</span>
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-slate-400 block font-bold">SELISIH</span>
+                                                <span className="text-[10px] text-orange-100 block font-bold">SELISIH</span>
                                                 <span className="font-black text-white">{selectedTeam.standing.goal_difference > 0 ? `+${selectedTeam.standing.goal_difference}` : selectedTeam.standing.goal_difference}</span>
                                             </div>
-                                            <div className="bg-brand-500/20 rounded-xl py-0.5 border border-brand-500/30">
-                                                <span className="text-[10px] text-brand-300 block font-black">POIN</span>
-                                                <span className="font-black text-brand-400 text-sm">{selectedTeam.standing.points}</span>
+                                            <div className="bg-white rounded-xl py-0.5 shadow-sm">
+                                                <span className="text-[10px] text-brand-600 block font-black">POIN</span>
+                                                <span className="font-black text-brand-600 text-sm">{selectedTeam.standing.points}</span>
                                             </div>
                                         </div>
                                     )}
@@ -532,11 +532,11 @@ export default function PlayersIndex({
                                     {/* Highlights & Recent Form Row */}
                                     <div className="pt-3 flex items-center justify-between flex-wrap gap-2 text-xs">
                                         <div className="flex items-center gap-3">
-                                            <span className="flex items-center gap-1 text-slate-300 text-[11px] font-semibold">
+                                            <span className="flex items-center gap-1 text-orange-100 text-[11px] font-semibold">
                                                 <span>⚽ Total Gol Tim:</span>
                                                 <strong className="text-white font-black text-xs">{selectedTeam.summary?.total_goals || 0}</strong>
                                             </span>
-                                            <span className="flex items-center gap-1 text-slate-300 text-[11px] font-semibold">
+                                            <span className="flex items-center gap-1 text-orange-100 text-[11px] font-semibold">
                                                 <span>⚡ Total Assist:</span>
                                                 <strong className="text-white font-black text-xs">{selectedTeam.summary?.total_assists || 0}</strong>
                                             </span>
@@ -545,12 +545,12 @@ export default function PlayersIndex({
                                         {/* Recent Form (W, D, L) */}
                                         {selectedTeam.recent_form && selectedTeam.recent_form.length > 0 && (
                                             <div className="flex items-center space-x-1">
-                                                <span className="text-[10px] text-slate-400 font-bold mr-1">Tren:</span>
+                                                <span className="text-[10px] text-orange-100 font-bold mr-1">Tren:</span>
                                                 {selectedTeam.recent_form.map((form, fIdx) => (
                                                     <span
                                                         key={fIdx}
                                                         title={`${form.opponent} (${form.score})`}
-                                                        className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center ${
+                                                        className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center border border-white/20 shadow-xs ${
                                                             form.result === 'W' ? 'bg-emerald-500 text-white' :
                                                             form.result === 'D' ? 'bg-amber-500 text-white' :
                                                             'bg-rose-500 text-white'
@@ -604,8 +604,8 @@ export default function PlayersIndex({
                                                     onClick={() => setPositionFilter(tab.id)}
                                                     className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
                                                         positionFilter === tab.id
-                                                            ? 'bg-brand-500 text-white font-black shadow-xs'
-                                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                            ? 'bg-gradient-to-r from-brand-500 to-orange-600 text-white font-black shadow-md shadow-brand-500/25'
+                                                            : 'bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-brand-600'
                                                     }`}
                                                 >
                                                     {tab.label}
@@ -651,8 +651,8 @@ export default function PlayersIndex({
                                                     key={player.id}
                                                     className={`rounded-2xl border transition-all duration-200 bg-white ${
                                                         isTopScorer 
-                                                            ? 'border-amber-200 shadow-sm ring-1 ring-amber-300/50' 
-                                                            : 'border-gray-100 hover:border-gray-200 shadow-xs'
+                                                            ? 'border-amber-300 shadow-sm ring-1 ring-amber-300/50 bg-amber-50/20' 
+                                                            : 'border-gray-100 hover:border-brand-200 shadow-xs'
                                                     }`}
                                                 >
                                                     {/* Main Row */}
@@ -662,7 +662,7 @@ export default function PlayersIndex({
                                                     >
                                                         <div className="flex items-center space-x-3 min-w-0 pr-2">
                                                             {/* Jersey Badge */}
-                                                            <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+                                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
                                                                 #{player.jersey_number || '0'}
                                                             </div>
 
@@ -828,7 +828,7 @@ export default function PlayersIndex({
                         >
                             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                                 <div className="flex items-center space-x-2.5">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white font-black text-sm flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-orange-600 text-white font-black text-sm flex items-center justify-center shadow-sm">
                                         #{inspectPlayer.jersey_number || '0'}
                                     </div>
                                     <div>
@@ -865,7 +865,7 @@ export default function PlayersIndex({
 
                             <button
                                 onClick={() => setInspectPlayer(null)}
-                                className="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md"
+                                className="w-full py-2.5 bg-gradient-to-r from-brand-500 to-orange-600 hover:from-brand-600 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-md shadow-brand-500/20 active:scale-95 transition-all"
                             >
                                 Tutup
                             </button>
