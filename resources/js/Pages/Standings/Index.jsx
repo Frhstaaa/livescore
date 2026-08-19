@@ -28,7 +28,12 @@ export default function StandingsIndex({ standings, competitions, selectedCompet
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60 text-xs">
                             {standings && standings.length > 0 ? (
                                 standings.map((item, index) => (
-                                    <tr key={item.id} className="hover:bg-brand-50/40 dark:hover:bg-slate-700/40 transition-colors">
+                                    <tr 
+                                        key={item.id} 
+                                        onClick={() => router.get('/players', { team_id: item.team_id, competition_id: selectedCompetitionId, tab: 'squad' })}
+                                        className="hover:bg-brand-50/60 dark:hover:bg-slate-700/60 transition-colors cursor-pointer group"
+                                        title="Klik untuk melihat Detail Skuad & Statistik Pemain"
+                                    >
                                         <td className="py-2.5 px-1 text-center font-bold">
                                             <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] ${
                                                 index === 0 ? 'bg-emerald-500 text-white font-black shadow-sm' :
@@ -46,7 +51,7 @@ export default function StandingsIndex({ standings, competitions, selectedCompet
                                                         item.team?.short_name || 'TIM'
                                                     )}
                                                 </div>
-                                                <span className="truncate max-w-[85px] sm:max-w-[140px] text-xs font-bold text-gray-900 dark:text-slate-100">
+                                                <span className="truncate max-w-[85px] sm:max-w-[140px] text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                                                     {item.team?.name}
                                                 </span>
                                             </div>

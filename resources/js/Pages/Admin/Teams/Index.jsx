@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
-import { Plus, Trash2, Edit2, Shield, UploadCloud, Image as ImageIcon, Users, X, UserPlus, CheckCircle2, Printer } from 'lucide-react';
+import { Plus, Trash2, Edit2, Shield, UploadCloud, Image as ImageIcon, Users, X, UserPlus, CheckCircle2, Printer, Activity, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminTeams({ teams, pendingRegistrants = [] }) {
@@ -310,12 +310,22 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                     </button>
                                 </div>
 
-                                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200/60">
+                                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200/60 flex-wrap gap-y-1.5">
+                                    <a
+                                        href={`/players?team_id=${t.id}&tab=squad`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        title="Lihat Detail Statistik Skuad"
+                                    >
+                                        <Activity className="w-3.5 h-3.5 text-brand-600" />
+                                        <span>Statistik</span>
+                                    </a>
                                     <a
                                         href={`/admin/teams/print?team_id=${t.id}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center space-x-1"
                                         title="Cetak Skuad Tim Ini"
                                     >
                                         <Printer className="w-3.5 h-3.5 text-slate-700" />
@@ -323,21 +333,21 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                     </a>
                                     <button
                                         onClick={() => handleOpenSquadModal(t)}
-                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        className="px-2.5 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl text-xs flex items-center space-x-1"
                                     >
                                         <Users className="w-3.5 h-3.5" />
                                         <span>Kelola Skuad</span>
                                     </button>
                                     <button
                                         onClick={() => handleEdit(t)}
-                                        className="px-3 py-1.5 bg-brand-50 text-brand-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        className="px-2.5 py-1.5 bg-gray-50 text-gray-700 font-bold rounded-xl text-xs flex items-center space-x-1"
                                     >
                                         <Edit2 className="w-3.5 h-3.5" />
                                         <span>Edit</span>
                                     </button>
                                     <button
                                         onClick={() => handleDelete(t.id)}
-                                        className="px-3 py-1.5 bg-red-50 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        className="px-2.5 py-1.5 bg-red-50 text-red-600 font-bold rounded-xl text-xs flex items-center space-x-1"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                         <span>Hapus</span>
@@ -389,6 +399,15 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                         </td>
                                         <td className="py-3 px-4 text-right space-x-1">
                                             <a
+                                                href={`/players?team_id=${t.id}&tab=squad`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors inline-block align-middle"
+                                                title="Lihat Detail Statistik Skuad Turnamen"
+                                            >
+                                                <Activity className="w-4 h-4" />
+                                            </a>
+                                            <a
                                                 href={`/admin/teams/print?team_id=${t.id}`}
                                                 target="_blank"
                                                 rel="noreferrer"
@@ -406,7 +425,7 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(t)}
-                                                className="p-1.5 text-brand-500 hover:bg-brand-50 rounded-lg transition-colors inline-block align-middle"
+                                                className="p-1.5 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors inline-block align-middle"
                                                 title="Edit Tim"
                                             >
                                                 <Edit2 className="w-4 h-4" />
@@ -457,6 +476,16 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                 </div>
 
                                 <div className="flex items-center space-x-1.5">
+                                    <a
+                                        href={`/players?team_id=${currentActiveTeam.id}&tab=squad`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-[11px] font-bold rounded-xl flex items-center gap-1 transition-colors"
+                                        title="Lihat Statistik Skuad Turnamen"
+                                    >
+                                        <Activity className="w-3.5 h-3.5 text-brand-600" />
+                                        <span>Statistik</span>
+                                    </a>
                                     <a
                                         href={`/admin/teams/print?team_id=${currentActiveTeam.id}`}
                                         target="_blank"
