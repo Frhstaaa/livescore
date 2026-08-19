@@ -612,30 +612,30 @@ export default function Index({ registrants = [], competitions = [], teams = [],
             {/* ======================================================== */}
             <AnimatePresence>
                 {showRouletteModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-white border border-gray-100 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative"
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            className="bg-white border border-gray-100 rounded-2xl sm:rounded-3xl w-full max-w-4xl max-h-[94vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative"
                         >
                             {/* Modal Header */}
-                            <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-brand-950 text-white flex items-center justify-between border-b border-slate-700/50">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 text-white flex items-center justify-center shadow-lg shadow-brand-500/30">
-                                        <Sparkles className="w-5 h-5 animate-spin" style={{ animationDuration: '6s' }} />
+                            <div className="p-3.5 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-brand-950 text-white flex items-center justify-between border-b border-slate-700/50 shrink-0">
+                                <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 pr-2">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 text-white flex items-center justify-center shadow-lg shadow-brand-500/30 shrink-0">
+                                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" style={{ animationDuration: '6s' }} />
                                     </div>
-                                    <div>
-                                        <h3 className="text-base font-black tracking-tight flex items-center gap-2">
-                                            ROULETTE DRAFT PEMBAGIAN TIM
-                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-brand-500 text-white rounded-full">
+                                    <div className="min-w-0">
+                                        <h3 className="text-xs sm:text-base font-black tracking-tight flex items-center flex-wrap gap-1.5 leading-tight">
+                                            <span>ROULETTE DRAFT</span>
+                                            <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 bg-brand-500 text-white rounded-full">
                                                 PRO
                                             </span>
-                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-400 text-amber-950 rounded-full">
+                                            <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 bg-amber-400 text-amber-950 rounded-full">
                                                 Interactive
                                             </span>
                                         </h3>
-                                        <p className="text-xs text-slate-300 font-medium mt-0.5">
+                                        <p className="text-[10px] sm:text-xs text-slate-300 font-medium mt-0.5 truncate">
                                             Undian acak pemain ke dalam tim secara transparan dan visual.
                                         </p>
                                     </div>
@@ -643,38 +643,38 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                 <button
                                     type="button"
                                     onClick={() => setShowRouletteModal(false)}
-                                    className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                    className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             {/* Modal Body */}
-                            <div className="p-6 overflow-y-auto flex-1 bg-[#F8F9FD] space-y-6">
+                            <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 bg-[#F8F9FD] space-y-4 sm:space-y-6">
 
                                 {/* STAGE 1: SETUP */}
                                 {rouletteStage === 'setup' && (
-                                    <div className="space-y-6 max-w-xl mx-auto py-2">
+                                    <div className="space-y-4 sm:space-y-6 max-w-xl mx-auto py-1 sm:py-2">
                                         <div className="text-center space-y-1">
-                                            <span className="text-4xl">🎲</span>
-                                            <h4 className="text-lg font-black text-gray-900">Persiapan Undian Tim</h4>
+                                            <span className="text-3xl sm:text-4xl">🎲</span>
+                                            <h4 className="text-base sm:text-lg font-black text-gray-900">Persiapan Undian Tim</h4>
                                             <p className="text-xs text-gray-500">
-                                                Tentukan jumlah tim yang akan dibentuk untuk menampung <strong>{draftQueue.length} pemain</strong>.
+                                                Tentukan jumlah tim untuk menampung <strong>{draftQueue.length} pemain</strong>.
                                             </p>
                                         </div>
 
-                                        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-4">
+                                        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm space-y-3 sm:space-y-4">
                                             <div>
                                                 <label className="block text-xs font-black uppercase text-gray-700 mb-2">
                                                     Pilih Jumlah Tim:
                                                 </label>
-                                                <div className="grid grid-cols-5 gap-2">
+                                                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                                                     {[2, 3, 4, 5, 6].map(num => (
                                                         <button
                                                             key={num}
                                                             type="button"
                                                             onClick={() => setTeamCount(num)}
-                                                            className={`py-2.5 rounded-xl font-black text-sm border transition-all ${
+                                                            className={`py-2 sm:py-2.5 rounded-xl font-black text-xs sm:text-sm border transition-all ${
                                                                 teamCount === num
                                                                     ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/25 scale-105'
                                                                     : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
@@ -688,16 +688,16 @@ export default function Index({ registrants = [], competitions = [], teams = [],
 
                                             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex justify-between items-center">
                                                 <span>Pemain per Tim:</span>
-                                                <span className="font-black text-sm">
+                                                <span className="font-black text-xs sm:text-sm">
                                                     ±{Math.floor(draftQueue.length / teamCount)} - {Math.ceil(draftQueue.length / teamCount)} Pemain
                                                 </span>
                                             </div>
 
-                                            <div className="space-y-2 pt-2">
+                                            <div className="space-y-2 pt-1">
                                                 <label className="block text-xs font-black uppercase text-gray-700">
                                                     Nama Tim (Opsional):
                                                 </label>
-                                                <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                     {Array.from({ length: teamCount }).map((_, idx) => {
                                                         const defaultName = TEAM_THEMES[idx % TEAM_THEMES.length].name;
                                                         return (
@@ -719,20 +719,20 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                             </div>
                                         </div>
 
-                                        <div className="flex justify-end gap-3">
+                                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => setShowRouletteModal(false)}
-                                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50"
+                                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50"
                                             >
                                                 Batal
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={startRouletteDraft}
-                                                className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 shadow-md shadow-brand-500/20 flex items-center gap-2 active:scale-95"
+                                                className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 shadow-md shadow-brand-500/20 flex items-center justify-center gap-2 active:scale-95"
                                             >
-                                                <Play className="w-4 h-4 fill-white" />
+                                                <Play className="w-4 h-4 fill-white shrink-0" />
                                                 Mulai Roulette Draft
                                             </button>
                                         </div>
@@ -741,9 +741,9 @@ export default function Index({ registrants = [], competitions = [], teams = [],
 
                                 {/* STAGE 2: LIVE SPINNING / DRAFTING */}
                                 {rouletteStage === 'spinning' && (
-                                    <div className="space-y-6">
+                                    <div className="space-y-4 sm:space-y-6">
                                         {/* Progress Bar & Header */}
-                                        <div className="flex items-center justify-between text-xs font-bold text-gray-500 pb-1">
+                                        <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold text-gray-500 pb-1">
                                             <span>
                                                 Pemain <strong className="text-brand-600">{currentDraftIndex + 1}</strong> dari <strong>{draftQueue.length}</strong>
                                             </span>
@@ -759,61 +759,63 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                         </div>
 
                                         {/* Roulette Center Arena */}
-                                        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-md text-center relative overflow-hidden">
+                                        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-md text-center relative overflow-hidden">
                                             {/* Glow backdrop */}
                                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
 
                                             {currentPlayer ? (
-                                                <div className="space-y-4 relative z-10">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-200">
+                                                <div className="space-y-3.5 sm:space-y-4 relative z-10">
+                                                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-200 inline-block">
                                                         Pemain Sedang Diundi
                                                     </span>
 
                                                     {/* Player Card */}
-                                                    <motion.div
-                                                        key={currentPlayer.id}
-                                                        initial={{ scale: 0.85, opacity: 0 }}
-                                                        animate={{ scale: 1, opacity: 1 }}
-                                                        className="inline-flex items-center space-x-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 p-4 rounded-2xl border-2 border-brand-500/40 shadow-md"
-                                                    >
-                                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-400 text-white font-black text-lg flex items-center justify-center shadow-md">
-                                                            {currentPlayer.name.charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <h4 className="text-base font-black text-gray-900">{currentPlayer.name}</h4>
-                                                            <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5 mt-0.5">
-                                                                <span>Posisi:</span>
-                                                                <span className="font-bold text-brand-600">
-                                                                    {positionBadges[currentPlayer.position]?.icon} {currentPlayer.position}
-                                                                </span>
-                                                            </p>
-                                                        </div>
-                                                    </motion.div>
+                                                    <div>
+                                                        <motion.div
+                                                            key={currentPlayer.id}
+                                                            initial={{ scale: 0.85, opacity: 0 }}
+                                                            animate={{ scale: 1, opacity: 1 }}
+                                                            className="inline-flex items-center space-x-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 p-3 sm:p-4 rounded-2xl border-2 border-brand-500/40 shadow-md max-w-full"
+                                                        >
+                                                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-400 text-white font-black text-base sm:text-lg flex items-center justify-center shadow-md shrink-0">
+                                                                {currentPlayer.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="text-left min-w-0">
+                                                                <h4 className="text-sm sm:text-base font-black text-gray-900 truncate">{currentPlayer.name}</h4>
+                                                                <p className="text-[11px] sm:text-xs text-gray-500 font-semibold flex items-center gap-1.5 mt-0.5">
+                                                                    <span>Posisi:</span>
+                                                                    <span className="font-bold text-brand-600">
+                                                                        {positionBadges[currentPlayer.position]?.icon} {currentPlayer.position}
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </motion.div>
+                                                    </div>
 
                                                     {/* Spinning Team Roulette Carousel */}
-                                                    <div className="pt-3">
-                                                        <span className="text-[11px] font-bold text-gray-400 block mb-2">
+                                                    <div className="pt-2">
+                                                        <span className="text-[10px] sm:text-[11px] font-bold text-gray-400 block mb-2">
                                                             Memilih Tim Tujuan:
                                                         </span>
-                                                        <div className="flex items-center justify-center gap-2.5 flex-wrap">
+                                                        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap">
                                                             {draftedTeams.map((t, idx) => {
                                                                 const isActive = rouletteActiveTeamIndex === idx;
                                                                 return (
                                                                     <motion.div
                                                                         key={t.id}
                                                                         animate={{
-                                                                            scale: isActive ? 1.12 : 0.95,
-                                                                            y: isActive ? -4 : 0,
+                                                                            scale: isActive ? 1.08 : 0.95,
+                                                                            y: isActive ? -3 : 0,
                                                                         }}
                                                                         transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                                                                        className={`px-4 py-3 rounded-2xl border-2 font-black text-xs transition-all flex items-center space-x-2 ${
+                                                                        className={`px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl border-2 font-black text-[11px] sm:text-xs transition-all flex items-center space-x-1.5 sm:space-x-2 ${
                                                                             isActive
-                                                                                ? `bg-gradient-to-r ${t.theme.color} text-white border-white shadow-xl ring-4 ring-brand-500/30`
-                                                                                : `${t.theme.bg} ${t.theme.text} ${t.theme.border} opacity-50`
+                                                                                ? `bg-gradient-to-r ${t.theme.color} text-white border-white shadow-lg ring-2 sm:ring-4 ring-brand-500/30`
+                                                                                : `${t.theme.bg} ${t.theme.text} ${t.theme.border} opacity-60`
                                                                         }`}
                                                                     >
-                                                                        <Trophy className="w-4 h-4" />
-                                                                        <span>{t.name}</span>
+                                                                        <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                                                        <span className="truncate">{t.name}</span>
                                                                     </motion.div>
                                                                 );
                                                             })}
@@ -825,11 +827,11 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                                         <motion.div
                                                             initial={{ opacity: 0, y: 6 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 py-1.5 px-4 rounded-xl inline-flex items-center gap-1.5"
+                                                            className="text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 py-1.5 px-3 sm:px-4 rounded-xl inline-flex items-center gap-1.5 max-w-full"
                                                         >
-                                                            <CheckCircle className="w-4 h-4 text-emerald-600" />
-                                                            <span>
-                                                                <strong>{lastDraftedPlayer.player.name}</strong> resmi masuk ke <strong>{lastDraftedPlayer.team.name}</strong>!
+                                                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                            <span className="truncate">
+                                                                <strong>{lastDraftedPlayer.player.name}</strong> ➔ <strong>{lastDraftedPlayer.team.name}</strong>
                                                             </span>
                                                         </motion.div>
                                                     )}
@@ -837,69 +839,70 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                             ) : null}
 
                                             {/* Action Control Buttons */}
-                                            <div className="flex items-center justify-center gap-3 pt-6 relative z-10 border-t border-gray-100 mt-5">
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 pt-4 sm:pt-6 relative z-10 border-t border-gray-100 mt-4 sm:mt-5">
                                                 <button
                                                     type="button"
                                                     onClick={handleNextSpin}
                                                     disabled={isSpinning || currentDraftIndex >= draftQueue.length}
-                                                    className="px-6 py-3 bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-brand-500/25 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                                                    className="w-full sm:w-auto px-5 py-2.5 sm:py-3 bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white rounded-xl sm:rounded-2xl text-xs font-black shadow-md flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                                                 >
-                                                    <Play className="w-4 h-4 fill-white" />
-                                                    {isSpinning ? 'Sedang Memutar...' : 'Putar Pemain Ini'}
+                                                    <Play className="w-4 h-4 fill-white shrink-0" />
+                                                    <span>{isSpinning ? 'Sedang Memutar...' : 'Putar Pemain Ini'}</span>
                                                 </button>
 
                                                 <button
                                                     type="button"
                                                     onClick={toggleAutoSpin}
-                                                    className={`px-5 py-3 rounded-2xl text-xs font-black border flex items-center gap-2 transition-all ${
+                                                    className={`w-full sm:w-auto px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-black border flex items-center justify-center gap-2 transition-all ${
                                                         autoSpin
                                                             ? 'bg-amber-500 text-white border-amber-500 animate-pulse'
                                                             : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                                                     }`}
                                                 >
-                                                    <FastForward className="w-4 h-4" />
-                                                    {autoSpin ? 'Hentikan Auto-Spin' : '⚡ Auto-Spin Cepat'}
+                                                    <FastForward className="w-4 h-4 shrink-0" />
+                                                    <span>{autoSpin ? 'Hentikan Auto-Spin' : '⚡ Auto-Spin Cepat'}</span>
                                                 </button>
 
                                                 <button
                                                     type="button"
                                                     onClick={handleInstantFinish}
-                                                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl text-xs font-bold"
+                                                    className="w-full sm:w-auto px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl sm:rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5"
                                                 >
-                                                    Selesaikan Instan ⏩
+                                                    <span>Selesaikan Instan</span>
+                                                    <span>⏩</span>
                                                 </button>
                                             </div>
                                         </div>
 
                                         {/* Real-time Team Buckets Display */}
                                         <div className="space-y-2">
-                                            <h5 className="text-xs font-black uppercase tracking-wider text-gray-500">
+                                            <h5 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-gray-500">
                                                 Hasil Pembagian Tim Sementara:
                                             </h5>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
                                                 {draftedTeams.map((t) => (
                                                     <div
                                                         key={t.id}
-                                                        className={`bg-white rounded-2xl p-3.5 border ${t.theme.border} shadow-sm space-y-2.5`}
+                                                        className={`bg-white rounded-2xl p-3 sm:p-3.5 border ${t.theme.border} shadow-sm space-y-2`}
                                                     >
-                                                        <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                                                            <div className="flex items-center space-x-2">
-                                                                <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${t.theme.color}`} />
-                                                                <h6 className="text-xs font-black text-gray-900">{t.name}</h6>
+                                                        <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
+                                                            <div className="flex items-center space-x-2 min-w-0 pr-1">
+                                                                <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${t.theme.color} shrink-0`} />
+                                                                <h6 className="text-xs font-black text-gray-900 truncate">{t.name}</h6>
                                                             </div>
-                                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${t.theme.badge}`}>
+                                                            <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${t.theme.badge}`}>
                                                                 {t.players.length} Pemain
                                                             </span>
                                                         </div>
 
-                                                        <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                                                        <div className="space-y-1 max-h-32 sm:max-h-36 overflow-y-auto pr-1">
                                                             {t.players.length > 0 ? (
                                                                 t.players.map((p, pIdx) => (
                                                                     <div
                                                                         key={p.id || pIdx}
                                                                         className="flex items-center justify-between p-1.5 rounded-lg bg-gray-50 text-[11px] font-semibold text-gray-800"
                                                                     >
-                                                                        <span className="truncate">{p.name}</span>
+                                                                        <span className="truncate pr-1">{p.name}</span>
                                                                         <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">
                                                                             {p.position}
                                                                         </span>
@@ -920,12 +923,12 @@ export default function Index({ registrants = [], competitions = [], teams = [],
 
                                 {/* STAGE 3: FINISHED & CONFIRMATION */}
                                 {rouletteStage === 'finished' && (
-                                    <div className="space-y-6">
-                                        <div className="text-center space-y-1.5">
-                                            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner ring-8 ring-emerald-50">
-                                                <Trophy className="w-8 h-8 text-emerald-600 animate-bounce" />
+                                    <div className="space-y-4 sm:space-y-6">
+                                        <div className="text-center space-y-1 sm:space-y-1.5">
+                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner ring-4 sm:ring-8 ring-emerald-50">
+                                                <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600 animate-bounce" />
                                             </div>
-                                            <h4 className="text-lg font-black text-gray-900">
+                                            <h4 className="text-base sm:text-lg font-black text-gray-900">
                                                 🎉 Roulette Draft Selesai!
                                             </h4>
                                             <p className="text-xs text-gray-500 font-medium">
@@ -934,40 +937,40 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                         </div>
 
                                         {/* Final Roster Display Grid */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3.5">
                                             {draftedTeams.map((t) => (
                                                 <div
                                                     key={t.id}
-                                                    className={`bg-white rounded-3xl p-4 border-2 ${t.theme.border} shadow-md space-y-3`}
+                                                    className={`bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border-2 ${t.theme.border} shadow-md space-y-2.5 sm:space-y-3`}
                                                 >
-                                                    <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-                                                        <div className="flex items-center space-x-2.5">
-                                                            <div className={`w-8 h-8 rounded-xl bg-gradient-to-r ${t.theme.color} text-white flex items-center justify-center font-black text-xs shadow-sm`}>
+                                                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                                                        <div className="flex items-center space-x-2 min-w-0 pr-1">
+                                                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-r ${t.theme.color} text-white flex items-center justify-center font-black text-[11px] sm:text-xs shadow-sm shrink-0`}>
                                                                 {t.short_name}
                                                             </div>
-                                                            <div>
-                                                                <h5 className="text-xs font-black text-gray-900">{t.name}</h5>
-                                                                <span className="text-[10px] text-gray-400 font-semibold">
+                                                            <div className="min-w-0">
+                                                                <h5 className="text-xs font-black text-gray-900 truncate">{t.name}</h5>
+                                                                <span className="text-[9px] sm:text-[10px] text-gray-400 font-semibold block">
                                                                     Skuad Resmi
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${t.theme.badge}`}>
+                                                        <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${t.theme.badge}`}>
                                                             {t.players.length} Pemain
                                                         </span>
                                                     </div>
 
-                                                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                                    <div className="space-y-1 max-h-40 sm:max-h-48 overflow-y-auto pr-1">
                                                         {t.players.map((p, pIdx) => (
                                                             <div
                                                                 key={p.id || pIdx}
-                                                                className="flex items-center justify-between p-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-bold text-gray-800"
+                                                                className="flex items-center justify-between p-1.5 sm:p-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-[11px] sm:text-xs font-bold text-gray-800"
                                                             >
-                                                                <div className="flex items-center space-x-2 min-w-0 pr-1">
-                                                                    <span className="text-[10px] text-gray-400 font-bold">#{pIdx + 1}</span>
+                                                                <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 pr-1">
+                                                                    <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold">#{pIdx + 1}</span>
                                                                     <span className="truncate">{p.name}</span>
                                                                 </div>
-                                                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-white text-gray-700 border border-gray-200 uppercase shrink-0">
+                                                                <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded bg-white text-gray-700 border border-gray-200 uppercase shrink-0">
                                                                     {p.position}
                                                                 </span>
                                                             </div>
@@ -978,31 +981,31 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                                         </div>
 
                                         {/* Final Actions */}
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                                        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3.5 sm:pt-4 border-t border-gray-200">
                                             <button
                                                 type="button"
                                                 onClick={openRoulette}
-                                                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all flex items-center gap-1.5"
+                                                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5"
                                             >
                                                 <RotateCcw className="w-4 h-4" />
                                                 Putar Ulang (Re-Roll)
                                             </button>
 
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowRouletteModal(false)}
-                                                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50"
+                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50 text-center"
                                                 >
                                                     Tutup
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={saveRouletteResult}
-                                                    className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-600/20 flex items-center gap-2 active:scale-95"
+                                                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md flex items-center justify-center gap-2 active:scale-95 text-center"
                                                 >
                                                     <Check className="w-4 h-4" />
-                                                    Simpan Hasil Undian ke Database
+                                                    Simpan Hasil Undian
                                                 </button>
                                             </div>
                                         </div>
