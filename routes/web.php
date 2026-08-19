@@ -112,6 +112,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/registrants', [AdminRegistrationController::class, 'store'])->name('registrants.store');
     Route::post('/registrants/randomize', [AdminRegistrationController::class, 'randomize'])->name('registrants.randomize');
     Route::put('/registrants/{id}/status', [AdminRegistrationController::class, 'updateStatus'])->name('registrants.status');
+    Route::post('/registrants/bulk-assign', [AdminRegistrationController::class, 'bulkAssign'])->name('registrants.bulk-assign');
     Route::post('/registrants/{id}/assign', [AdminRegistrationController::class, 'assignToTeam'])->name('registrants.assign');
     Route::delete('/registrants/{id}', [AdminRegistrationController::class, 'destroy'])->name('registrants.destroy');
     Route::post('/live-draft/sync', [TeamDraftController::class, 'syncLiveDraft'])->name('live-draft.sync');

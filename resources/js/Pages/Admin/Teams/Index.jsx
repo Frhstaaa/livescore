@@ -5,7 +5,7 @@ import { useForm, router } from '@inertiajs/react';
 import { Plus, Trash2, Edit2, Shield, UploadCloud, Image as ImageIcon, Users, X, UserPlus, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function AdminTeams({ teams }) {
+export default function AdminTeams({ teams, pendingRegistrants = [] }) {
     const [editingTeam, setEditingTeam] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [squadModalTeam, setSquadModalTeam] = useState(null);
@@ -429,6 +429,43 @@ export default function AdminTeams({ teams }) {
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
+
+                            {/* Quick Import from Pending Registrants */}
+                            {pendingRegistrants && pendingRegistrants.length > 0 && !editingPlayer && (
+                                <div className="p-3 bg-amber-50/70 rounded-2xl border border-amber-200/80 mb-3 space-y-1.5 text-xs">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black text-amber-900 flex items-center gap-1.5">
+                                            <span>📥 Ambil dari Pendaftar Belum Masuk Tim:</span>
+                                            <span className="px-1.5 py-0.5 text-[9px] bg-amber-200 text-amber-950 font-black rounded-md">
+                                                {pendingRegistrants.length} Pemain
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <select
+                                        className="w-full p-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-gray-800 outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                                        defaultValue=""
+                                        onChange={(e) => {
+                                            const regId = e.target.value;
+                                            const found = pendingRegistrants.find(r => String(r.id) === String(regId));
+                                            if (found) {
+                                                setPlayerData({
+                                                    team_id: currentActiveTeam.id,
+                                                    name: found.name,
+                                                    jersey_number: (currentActiveTeam.players?.length || 0) + 1,
+                                                    position: found.position || 'Flank',
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        <option value="">-- Pilih Pemain untuk Mengisi Otomatis --</option>
+                                        {pendingRegistrants.map((reg) => (
+                                            <option key={reg.id} value={reg.id}>
+                                                {reg.name} ({reg.position}) {reg.phone ? `• ${reg.phone}` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             {/* Add / Edit Player Form */}
                             <form onSubmit={handleSavePlayer} className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200/80 mb-4 text-xs space-y-3">

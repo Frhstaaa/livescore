@@ -18,7 +18,14 @@ class TeamController extends Controller
     public function index(): Response
     {
         $teams = $this->teamRepo->getAllTeams();
-        return Inertia::render('Admin/Teams/Index', ['teams' => $teams]);
+        $pendingRegistrants = \App\Models\Registrant::where('status', 'pending')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'position', 'phone', 'competition_id']);
+
+        return Inertia::render('Admin/Teams/Index', [
+            'teams' => $teams,
+            'pendingRegistrants' => $pendingRegistrants,
+        ]);
     }
 
     public function store(Request $request)

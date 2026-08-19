@@ -27,7 +27,7 @@ class RegistrationController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        $teams = Team::orderBy('name', 'asc')->get(['id', 'name', 'short_name']);
+        $teams = Team::withCount('players')->orderBy('name', 'asc')->get(['id', 'name', 'short_name', 'logo_url']);
 
         return Inertia::render('Admin/Registrants/Index', [
             'registrants' => $registrants,
@@ -76,20 +76,71 @@ class RegistrationController extends Controller
     {
         $validated = $request->validate([
             'team_id' => 'required|exists:teams,id',
+            'jersey_number' => 'nullable|integer|min:1|max:99',
+            'position' => 'nullable|string|max:50',
         ]);
 
         $registrant = Registrant::findOrFail($id);
+        $team = Team::findOrFail($validated['team_id']);
+
+        $jerseyNumber = $validated['jersey_number'] ?? null;
+        if (!$jerseyNumber) {
+            $usedNumbers = Player::where('team_id', $team->id)->pluck('jersey_number')->toArray();
+            for ($i = 1; $i <= 99; $i++) {
+                if (!in_array($i, $usedNumbers)) {
+                    $jerseyNumber = $i;
+                    break;
+                }
+            }
+            if (!$jerseyNumber) $jerseyNumber = rand(1, 99);
+        }
 
         Player::create([
-            'team_id' => $validated['team_id'],
+            'team_id' => $team->id,
             'name' => $registrant->name,
-            'jersey_number' => rand(1, 99),
-            'position' => $registrant->position,
+            'jersey_number' => (int)$jerseyNumber,
+            'position' => !empty($validated['position']) ? $validated['position'] : $registrant->position,
         ]);
 
         $registrant->update(['status' => 'assigned']);
 
-        return redirect()->back()->with('success', 'Pemain berhasil dimasukkan ke dalam tim pilihan.');
+        return redirect()->back()->with('success', "Pemain \"{$registrant->name}\" berhasil dimasukkan ke dalam tim \"{$team->name}\" (No. #{$jerseyNumber}).");
+    }
+
+    public function bulkAssign(Request $request)
+    {
+        $validated = $request->validate([
+            'registrant_ids' => 'required|array|min:1',
+            'registrant_ids.*' => 'required|exists:registrants,id',
+            'team_id' => 'required|exists:teams,id',
+        ]);
+
+        $team = Team::findOrFail($validated['team_id']);
+        $registrants = Registrant::whereIn('id', $validated['registrant_ids'])->get();
+
+        $usedNumbers = Player::where('team_id', $team->id)->pluck('jersey_number')->toArray();
+        $currentNum = 1;
+        $count = 0;
+
+        foreach ($registrants as $reg) {
+            while (in_array($currentNum, $usedNumbers) && $currentNum <= 99) {
+                $currentNum++;
+            }
+            $jersey = $currentNum <= 99 ? $currentNum : rand(1, 99);
+            $usedNumbers[] = $jersey;
+
+            Player::create([
+                'team_id' => $team->id,
+                'name' => $reg->name,
+                'jersey_number' => $jersey,
+                'position' => $reg->position,
+            ]);
+
+            $reg->update(['status' => 'assigned']);
+            $count++;
+        }
+
+        return redirect()->back()->with('success', "Berhasil memasukkan {$count} pemain ke dalam tim \"{$team->name}\".");
     }
 
     public function randomize(Request $request)
