@@ -6,7 +6,7 @@ import {
     Shuffle, Users, CheckCircle, Clock, Plus, Trash2, Filter,
     Sparkles, UserCheck, Shield, Award, Phone, ArrowRight,
     Play, FastForward, RotateCcw, Trophy, Check, Zap, X, Search,
-    CheckSquare, Square, ArrowUpRight, UserPlus
+    CheckSquare, Square, ArrowUpRight, UserPlus, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -486,6 +486,18 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                 </div>
 
                 <div className="flex items-center flex-wrap gap-2.5 w-full md:w-auto">
+                    {/* Print Report Button */}
+                    <a
+                        href={`/admin/teams/print?competition_id=${selectedCompId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+                        title="Cetak Laporan Skuad & Pemain Seluruh Tim"
+                    >
+                        <Printer className="w-4 h-4 text-amber-400" />
+                        <span>🖨️ Cetak Laporan Tim</span>
+                    </a>
+
                     {/* Add Manual Registrant Button */}
                     <button
                         type="button"

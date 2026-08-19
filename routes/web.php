@@ -69,6 +69,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // Teams
     Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
+    Route::get('/teams/print', [TeamController::class, 'printReport'])->name('teams.print');
     Route::post('/teams', [TeamController::class, 'store'])->name('teams.store');
     Route::put('/teams/{id}', [TeamController::class, 'update'])->name('teams.update');
     Route::delete('/teams/{id}', [TeamController::class, 'destroy'])->name('teams.destroy');

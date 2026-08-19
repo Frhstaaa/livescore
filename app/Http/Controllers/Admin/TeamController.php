@@ -28,6 +28,35 @@ class TeamController extends Controller
         ]);
     }
 
+    public function printReport(Request $request): Response
+    {
+        $teamId = $request->query('team_id');
+        $competitionId = $request->query('competition_id');
+
+        $competitions = \App\Models\Competition::orderBy('id', 'desc')->get();
+        $activeComp = $competitionId 
+            ? \App\Models\Competition::find($competitionId) 
+            : ($competitions->first() ?? null);
+
+        $teamsQuery = \App\Models\Team::with(['players' => function ($q) {
+            $q->orderBy('jersey_number', 'asc')->orderBy('name', 'asc');
+        }])->withCount('players');
+
+        if ($teamId) {
+            $teams = $teamsQuery->where('id', $teamId)->get();
+        } else {
+            $teams = $teamsQuery->orderBy('name', 'asc')->get();
+        }
+
+        return Inertia::render('Admin/Teams/Print', [
+            'teams' => $teams,
+            'selectedTeamId' => $teamId ? (int)$teamId : null,
+            'competition' => $activeComp,
+            'competitions' => $competitions,
+            'allTeamsList' => \App\Models\Team::orderBy('name', 'asc')->get(['id', 'name', 'short_name'])
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

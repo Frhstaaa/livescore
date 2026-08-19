@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ConfirmModal from '@/Components/ConfirmModal';
 import { useForm, router } from '@inertiajs/react';
-import { Plus, Trash2, Edit2, Shield, UploadCloud, Image as ImageIcon, Users, X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Shield, UploadCloud, Image as ImageIcon, Users, X, UserPlus, CheckCircle2, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminTeams({ teams, pendingRegistrants = [] }) {
@@ -267,7 +267,22 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
 
                 {/* Team List Table & Mobile Cards */}
                 <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">Daftar Tim & Logo (.webp)</h3>
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                        <div>
+                            <h3 className="text-base font-bold text-gray-900">Daftar Tim & Logo (.webp)</h3>
+                            <p className="text-[10px] text-gray-400">Total {teams?.length || 0} tim terdaftar</p>
+                        </div>
+                        <a
+                            href="/admin/teams/print"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-black rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                            title="Cetak Laporan Lengkap Semua Skuad Tim"
+                        >
+                            <Printer className="w-3.5 h-3.5 text-amber-400" />
+                            <span>🖨️ Cetak Laporan Skuad (PDF)</span>
+                        </a>
+                    </div>
 
                     {/* Mobile Cards (Visible < md) */}
                     <div className="block md:hidden space-y-3">
@@ -296,6 +311,16 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                 </div>
 
                                 <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-200/60">
+                                    <a
+                                        href={`/admin/teams/print?team_id=${t.id}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center space-x-1"
+                                        title="Cetak Skuad Tim Ini"
+                                    >
+                                        <Printer className="w-3.5 h-3.5 text-slate-700" />
+                                        <span>Cetak</span>
+                                    </a>
                                     <button
                                         onClick={() => handleOpenSquadModal(t)}
                                         className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl text-xs flex items-center space-x-1"
@@ -363,23 +388,32 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                             </button>
                                         </td>
                                         <td className="py-3 px-4 text-right space-x-1">
+                                            <a
+                                                href={`/admin/teams/print?team_id=${t.id}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="p-1.5 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors inline-block align-middle"
+                                                title="Cetak Laporan Skuad Tim Ini (PDF)"
+                                            >
+                                                <Printer className="w-4 h-4" />
+                                            </a>
                                             <button
                                                 onClick={() => handleOpenSquadModal(t)}
-                                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block align-middle"
                                                 title="Kelola Skuad Pemain"
                                             >
                                                 <Users className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(t)}
-                                                className="p-1.5 text-brand-500 hover:bg-brand-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-brand-500 hover:bg-brand-50 rounded-lg transition-colors inline-block align-middle"
                                                 title="Edit Tim"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(t)}
-                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-block align-middle"
                                                 title="Hapus Tim"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -422,12 +456,24 @@ export default function AdminTeams({ teams, pendingRegistrants = [] }) {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={() => setSquadModalTeam(null)}
-                                    className="p-2 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center space-x-1.5">
+                                    <a
+                                        href={`/admin/teams/print?team_id=${currentActiveTeam.id}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-xl flex items-center gap-1 transition-colors"
+                                        title="Cetak Skuad Tim Ini (PDF)"
+                                    >
+                                        <Printer className="w-3.5 h-3.5 text-slate-700" />
+                                        <span>Cetak</span>
+                                    </a>
+                                    <button
+                                        onClick={() => setSquadModalTeam(null)}
+                                        className="p-2 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Quick Import from Pending Registrants */}
