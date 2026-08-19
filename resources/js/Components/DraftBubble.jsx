@@ -5,10 +5,22 @@ import { Users, X, RefreshCw, Search, Shield, Trophy, Sparkles, ChevronRight, Ch
 
 const positionConfig = {
     GK: { label: 'Goalkeeper', icon: '🧤', bg: 'bg-amber-100 text-amber-900 border-amber-300' },
+    Kiper: { label: 'Goalkeeper', icon: '🧤', bg: 'bg-amber-100 text-amber-900 border-amber-300' },
+    Anchor: { label: 'Anchor', icon: '🛡️', bg: 'bg-blue-100 text-blue-900 border-blue-300' },
     DEF: { label: 'Defender', icon: '🛡️', bg: 'bg-blue-100 text-blue-900 border-blue-300' },
+    Flank: { label: 'Flank', icon: '⚡', bg: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
     MID: { label: 'Midfielder', icon: '⚡', bg: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+    Pivot: { label: 'Pivot', icon: '🎯', bg: 'bg-rose-100 text-rose-900 border-rose-300' },
     FWD: { label: 'Forward', icon: '🎯', bg: 'bg-rose-100 text-rose-900 border-rose-300' },
 };
+
+const positionFilterTabs = [
+    { code: 'ALL', label: 'Semua' },
+    { code: 'GK', label: 'GK', icon: '🧤', match: ['GK', 'Kiper'] },
+    { code: 'DEF', label: 'DEF / Anchor', icon: '🛡️', match: ['DEF', 'Anchor'] },
+    { code: 'MID', label: 'MID / Flank', icon: '⚡', match: ['MID', 'Flank'] },
+    { code: 'FWD', label: 'FWD / Pivot', icon: '🎯', match: ['FWD', 'Pivot'] },
+];
 
 const TEAM_THEMES = [
     {
@@ -208,7 +220,15 @@ export default function DraftBubble() {
         const theme = team.theme || TEAM_THEMES[idx % TEAM_THEMES.length];
         const filteredPlayers = (team.players || []).filter((p) => {
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesPos = selectedPosition === 'ALL' || p.position === selectedPosition;
+            let matchesPos = true;
+            if (selectedPosition !== 'ALL') {
+                const tab = positionFilterTabs.find(t => t.code === selectedPosition);
+                if (tab && tab.match) {
+                    matchesPos = tab.match.includes(p.position);
+                } else {
+                    matchesPos = p.position === selectedPosition;
+                }
+            }
             return matchesSearch && matchesPos;
         });
 
@@ -463,30 +483,19 @@ export default function DraftBubble() {
                                 </div>
 
                                 <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar pt-0.5">
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedPosition('ALL')}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase transition-all shrink-0 ${
-                                            selectedPosition === 'ALL'
-                                                ? 'bg-slate-900 text-white'
-                                                : 'bg-white text-gray-600 border border-gray-200'
-                                        }`}
-                                    >
-                                        Semua
-                                    </button>
-                                    {Object.entries(positionConfig).map(([pos, conf]) => (
+                                    {positionFilterTabs.map((tab) => (
                                         <button
-                                            key={pos}
+                                            key={tab.code}
                                             type="button"
-                                            onClick={() => setSelectedPosition(pos)}
-                                            className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase transition-all shrink-0 flex items-center space-x-1 ${
-                                                selectedPosition === pos
+                                            onClick={() => setSelectedPosition(tab.code)}
+                                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 flex items-center space-x-1 ${
+                                                selectedPosition === tab.code
                                                     ? 'bg-brand-500 text-white shadow-xs'
-                                                    : 'bg-white text-gray-600 border border-gray-200'
+                                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                                             }`}
                                         >
-                                            <span>{conf.icon}</span>
-                                            <span>{pos}</span>
+                                            {tab.icon && <span>{tab.icon}</span>}
+                                            <span>{tab.label}</span>
                                         </button>
                                     ))}
                                 </div>

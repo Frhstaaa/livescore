@@ -28,7 +28,7 @@ class RegistrationController extends Controller
             'competition_id' => 'required|exists:competitions,id',
             'name' => 'required|string|max:100',
             'phone' => 'nullable|string|max:20',
-            'position' => 'required|in:GK,DEF,MID,FWD',
+            'position' => 'required|string|max:50',
         ]);
 
         $validated['status'] = 'pending';
