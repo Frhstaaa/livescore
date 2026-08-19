@@ -5,7 +5,8 @@ import { router } from '@inertiajs/react';
 import { 
     Award, Zap, ShieldAlert, Users, ChevronLeft, ChevronRight, 
     User, Search, Trophy, Star, Flame, Shield, Filter, ArrowUpDown, 
-    X, CheckCircle2, ChevronDown, ChevronUp, Activity, Sparkles
+    X, CheckCircle2, ChevronDown, ChevronUp, Activity, Sparkles,
+    ArrowRight, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,19 +21,44 @@ export default function PlayersIndex({
     initialTab = 'scorers'
 }) {
     const [statTab, setStatTab] = useState(initialTab || 'scorers'); // 'scorers' | 'assists' | 'cards' | 'squad'
+    const [activeTeam, setActiveTeam] = useState(selectedTeam);
+    const [teamSearchQuery, setTeamSearchQuery] = useState('');
+    
+    // Squad detail states
     const [positionFilter, setPositionFilter] = useState('all');
     const [sortBy, setSortBy] = useState('jersey'); // 'jersey' | 'goals' | 'assists' | 'cards' | 'motm'
-    const [searchQuery, setSearchQuery] = useState('');
+    const [playerSearchQuery, setPlayerSearchQuery] = useState('');
     const [inspectPlayer, setInspectPlayer] = useState(null);
     const [expandedPlayerId, setExpandedPlayerId] = useState(null);
 
-    const teamScrollRef = useRef(null);
+    // Keep activeTeam synced with prop if prop changes
+    React.useEffect(() => {
+        setActiveTeam(selectedTeam);
+    }, [selectedTeam]);
 
-    const scrollTeam = (direction) => {
-        if (teamScrollRef.current) {
-            const amount = direction === 'left' ? -180 : 180;
-            teamScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-        }
+    const handleSelectTeam = (teamId) => {
+        router.get('/players', {
+            team_id: teamId,
+            competition_id: selectedCompetitionId,
+            tab: 'squad',
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: (page) => {
+                setActiveTeam(page.props.selectedTeam);
+            }
+        });
+    };
+
+    const handleBackToTeamsList = () => {
+        setActiveTeam(null);
+        router.get('/players', {
+            competition_id: selectedCompetitionId,
+            tab: 'squad',
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
     const positionBadges = {
@@ -49,14 +75,26 @@ export default function PlayersIndex({
         Forward: { label: 'Forward', icon: '⚽', color: 'bg-rose-100 text-rose-800 border-rose-200' },
     };
 
-    // Filter and Sort squad players
+    // Filter list of all teams in squad overview
+    const filteredTeams = useMemo(() => {
+        if (!teams) return [];
+        if (!teamSearchQuery.trim()) return teams;
+        const q = teamSearchQuery.toLowerCase();
+        return teams.filter(t => 
+            t.name?.toLowerCase().includes(q) || 
+            t.short_name?.toLowerCase().includes(q) ||
+            t.coach_name?.toLowerCase().includes(q)
+        );
+    }, [teams, teamSearchQuery]);
+
+    // Filter and Sort squad players inside active team
     const filteredSquad = useMemo(() => {
-        if (!selectedTeam?.players) return [];
-        let list = [...selectedTeam.players];
+        if (!activeTeam?.players) return [];
+        let list = [...activeTeam.players];
 
         // Search query
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
+        if (playerSearchQuery.trim()) {
+            const q = playerSearchQuery.toLowerCase();
             list = list.filter(p => 
                 p.name?.toLowerCase().includes(q) || 
                 String(p.jersey_number).includes(q)
@@ -85,7 +123,7 @@ export default function PlayersIndex({
         });
 
         return list;
-    }, [selectedTeam, positionFilter, sortBy, searchQuery]);
+    }, [activeTeam, positionFilter, sortBy, playerSearchQuery]);
 
     const activeCompetition = competitions.find(c => c.id === selectedCompetitionId) || competitions[0];
 
@@ -174,7 +212,6 @@ export default function PlayersIndex({
                         transition={{ duration: 0.2 }}
                         className="space-y-2"
                     >
-                        {/* Table Header */}
                         <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100/70 border border-gray-200/60 rounded-xl text-[10px] font-black uppercase tracking-wider text-gray-500">
                             <div className="flex items-center space-x-4">
                                 <span className="w-6 text-center">POS</span>
@@ -388,7 +425,7 @@ export default function PlayersIndex({
                 )}
 
                 {/* ======================================================== */}
-                {/* TAB 4: SKUAD TIM & STATISTIK DETAIL                      */}
+                {/* TAB 4: SKUAD TIM                                         */}
                 {/* ======================================================== */}
                 {statTab === 'squad' && (
                     <motion.div
@@ -399,59 +436,142 @@ export default function PlayersIndex({
                         transition={{ duration: 0.2 }}
                         className="space-y-4"
                     >
-                        {/* Horizontal Team Selector Carousel */}
-                        <div className="relative flex items-center group">
-                            <motion.button
-                                whileTap={{ scale: 0.85 }}
-                                onClick={() => scrollTeam('left')}
-                                className="hidden group-hover:flex absolute left-0 z-10 w-7 h-7 bg-white shadow-md border border-gray-200 rounded-full items-center justify-center text-gray-700"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </motion.button>
-                            
-                            <div ref={teamScrollRef} className="flex items-center space-x-2 overflow-x-auto scroll-smooth no-scrollbar py-1 w-full">
-                                {teams?.map((t) => {
-                                    const isSelected = selectedTeam?.id === t.id;
-                                    return (
-                                        <motion.button
-                                            key={t.id}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => router.get('/players', { 
-                                                team_id: t.id, 
-                                                competition_id: selectedCompetitionId,
-                                                tab: 'squad'
-                                            }, { preserveState: true, preserveScroll: true })}
-                                            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border flex items-center space-x-2 shrink-0 ${
-                                                isSelected
-                                                    ? 'bg-gradient-to-r from-brand-500 to-orange-600 text-white border-brand-500 shadow-md shadow-brand-500/25 font-black ring-2 ring-orange-300'
-                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-brand-300 hover:bg-brand-50/50'
-                                            }`}
+                        {/* =================================================== */}
+                        {/* 🌟 VIEW 1: DAFTAR SKUAD TIM (INITIAL LIST VIEW)     */}
+                        {/* =================================================== */}
+                        {!activeTeam ? (
+                            <div className="space-y-3">
+                                {/* Search Bar for Teams */}
+                                <div className="relative">
+                                    <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                                    <input
+                                        type="text"
+                                        value={teamSearchQuery}
+                                        onChange={(e) => setTeamSearchQuery(e.target.value)}
+                                        placeholder="Cari nama tim, kode, atau nama pelatih..."
+                                        className="w-full pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand-500 shadow-xs"
+                                    />
+                                    {teamSearchQuery && (
+                                        <button
+                                            onClick={() => setTeamSearchQuery('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                                         >
-                                            {t.logo_url ? (
-                                                <img src={t.logo_url} alt="" className="w-4 h-4 object-contain shrink-0" />
-                                            ) : (
-                                                <span className="text-[10px] font-black">{t.short_name}</span>
-                                            )}
-                                            <span>{t.name}</span>
-                                        </motion.button>
-                                    );
-                                })}
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between px-1 text-[11px] font-bold text-gray-500">
+                                    <span>Pilih Tim ({filteredTeams.length} Tim Terdaftar):</span>
+                                    <span className="text-[10px] text-brand-600 font-semibold">Klik tim untuk melihat statistik</span>
+                                </div>
+
+                                {/* List of Teams Cards */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {filteredTeams.length > 0 ? (
+                                        filteredTeams.map((t) => (
+                                            <motion.div
+                                                key={t.id}
+                                                whileHover={{ scale: 1.01 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => handleSelectTeam(t.id)}
+                                                className="bg-white rounded-3xl p-4 border border-gray-100 hover:border-brand-300 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between space-y-3"
+                                            >
+                                                {/* Top Row: Logo, Name, Code */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center space-x-3 min-w-0 pr-2">
+                                                        <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center font-black text-sm text-brand-600 overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                                                            {t.logo_url ? (
+                                                                <img src={t.logo_url} alt={t.name} className="w-full h-full object-contain p-1" />
+                                                            ) : (
+                                                                <span>{t.short_name}</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <h3 className="text-sm font-black text-gray-900 truncate group-hover:text-brand-600 transition-colors">
+                                                                    {t.name}
+                                                                </h3>
+                                                                <span className="px-1.5 py-0.2 rounded-md bg-gray-100 text-gray-600 text-[9px] font-black shrink-0">
+                                                                    {t.short_name}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[11px] text-gray-400 font-medium truncate mt-0.5">
+                                                                Pelatih: <strong className="text-gray-700">{t.coach_name || 'Official Tim'}</strong>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="w-8 h-8 rounded-full bg-orange-50 group-hover:bg-brand-500 text-brand-600 group-hover:text-white flex items-center justify-center transition-colors shrink-0">
+                                                        <ArrowRight className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+
+                                                {/* Bottom Row: Stats Summary Chips */}
+                                                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-black text-gray-700">
+                                                            👥 {t.players_count || 0} Pemain
+                                                        </span>
+                                                        <span className="px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-lg text-[10px] font-black text-amber-900">
+                                                            ⚽ {t.total_goals || 0} Gol
+                                                        </span>
+                                                    </div>
+
+                                                    {t.position && (
+                                                        <span className="text-[10px] font-black text-brand-600 bg-brand-50 px-2 py-0.5 rounded-lg border border-brand-200">
+                                                            Posisi #{t.position}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-full bg-white rounded-3xl p-8 border border-gray-100 text-center shadow-sm space-y-2">
+                                            <Users className="w-8 h-8 text-gray-300 mx-auto" />
+                                            <p className="text-xs text-gray-400 font-medium">Tidak ada tim yang cocok dengan pencarian.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-
-                            <motion.button
-                                whileTap={{ scale: 0.85 }}
-                                onClick={() => scrollTeam('right')}
-                                className="hidden group-hover:flex absolute right-0 z-10 w-7 h-7 bg-white shadow-md border border-gray-200 rounded-full items-center justify-center text-gray-700"
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </motion.button>
-                        </div>
-
-                        {selectedTeam ? (
+                        ) : (
+                            /* =================================================== */
+                            /* 🌟 VIEW 2: DETAIL STATISTIK SKUAD TIM AKTIF         */
+                            /* =================================================== */
                             <div className="space-y-4">
-                                {/* ========================================== */}
-                                {/* 🏆 TEAM OVERVIEW & TOURNAMENT STATS CARD    */}
-                                {/* ========================================== */}
+                                {/* Back Navigation & Quick Team Switcher */}
+                                <div className="flex items-center justify-between gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleBackToTeamsList}
+                                        className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-2xl text-xs font-black transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                                    >
+                                        <ArrowLeft className="w-4 h-4 text-brand-500" />
+                                        <span>Daftar Tim</span>
+                                    </button>
+
+                                    {/* Team Switcher Carousel */}
+                                    <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-[65%] sm:max-w-none">
+                                        {teams?.map((t) => {
+                                            const isSelected = activeTeam?.id === t.id;
+                                            return (
+                                                <button
+                                                    key={t.id}
+                                                    onClick={() => handleSelectTeam(t.id)}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center space-x-1.5 shrink-0 ${
+                                                        isSelected
+                                                            ? 'bg-gradient-to-r from-brand-500 to-orange-600 text-white border-brand-500 shadow-md font-black'
+                                                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <span>{t.name}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* 🏆 TEAM OVERVIEW & TOURNAMENT STATS CARD */}
                                 <div className="bg-gradient-to-br from-brand-600 via-orange-600 to-amber-600 rounded-3xl p-5 text-white shadow-xl shadow-brand-500/25 relative overflow-hidden border border-orange-400/40">
                                     {/* Background decorative glow */}
                                     <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
@@ -460,71 +580,71 @@ export default function PlayersIndex({
                                     <div className="flex items-center justify-between pb-4 border-b border-white/20 relative z-10">
                                         <div className="flex items-center space-x-3.5">
                                             <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 p-1 flex items-center justify-center shrink-0 shadow-lg">
-                                                {selectedTeam.logo_url ? (
-                                                    <img src={selectedTeam.logo_url} alt="" className="w-full h-full object-contain" />
+                                                {activeTeam.logo_url ? (
+                                                    <img src={activeTeam.logo_url} alt="" className="w-full h-full object-contain" />
                                                 ) : (
-                                                    <span className="font-black text-lg text-white">{selectedTeam.short_name}</span>
+                                                    <span className="font-black text-lg text-white">{activeTeam.short_name}</span>
                                                 )}
                                             </div>
 
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className="text-lg font-black text-white tracking-tight">{selectedTeam.name}</h3>
+                                                    <h3 className="text-lg font-black text-white tracking-tight">{activeTeam.name}</h3>
                                                     <span className="px-2 py-0.5 rounded-md bg-white/25 text-white text-[10px] font-black border border-white/30 backdrop-blur-xs">
-                                                        {selectedTeam.short_name}
+                                                        {activeTeam.short_name}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-orange-100 font-medium mt-0.5">
-                                                    Pelatih: <span className="text-white font-bold">{selectedTeam.coach_name || 'Official Tim'}</span>
+                                                    Pelatih: <span className="text-white font-bold">{activeTeam.coach_name || 'Official Tim'}</span>
                                                 </p>
                                             </div>
                                         </div>
 
                                         {/* Standing Position Badge */}
                                         <div className="text-right">
-                                            {selectedTeam.standing ? (
+                                            {activeTeam.standing ? (
                                                 <div className="px-3 py-1 rounded-xl bg-white/20 border border-white/30 text-white text-right backdrop-blur-xs shadow-xs">
                                                     <span className="text-[10px] uppercase font-bold tracking-wider block text-orange-100">Klasemen</span>
-                                                    <span className="text-sm font-black text-white">Posisi #{selectedTeam.standing.position}</span>
+                                                    <span className="text-sm font-black text-white">Posisi #{activeTeam.standing.position}</span>
                                                 </div>
                                             ) : (
                                                 <span className="px-2.5 py-1 rounded-full bg-white/20 text-[10px] font-bold text-white backdrop-blur-xs">
-                                                    {selectedTeam.players?.length || 0} Pemain
+                                                    {activeTeam.players?.length || 0} Pemain
                                                 </span>
                                             )}
                                         </div>
                                     </div>
 
                                     {/* Standings Details Table Row */}
-                                    {selectedTeam.standing && (
+                                    {activeTeam.standing && (
                                         <div className="py-3 border-b border-white/20 grid grid-cols-7 text-center text-xs">
                                             <div>
                                                 <span className="text-[10px] text-orange-100 block font-bold">MAIN</span>
-                                                <span className="font-black text-white">{selectedTeam.standing.played}</span>
+                                                <span className="font-black text-white">{activeTeam.standing.played}</span>
                                             </div>
                                             <div>
                                                 <span className="text-[10px] text-orange-100 block font-bold">MENANG</span>
-                                                <span className="font-black text-white">{selectedTeam.standing.won}</span>
+                                                <span className="font-black text-white">{activeTeam.standing.won}</span>
                                             </div>
                                             <div>
                                                 <span className="text-[10px] text-orange-100 block font-bold">SERI</span>
-                                                <span className="font-black text-white">{selectedTeam.standing.drawn}</span>
+                                                <span className="font-black text-white">{activeTeam.standing.drawn}</span>
                                             </div>
                                             <div>
                                                 <span className="text-[10px] text-orange-100 block font-bold">KALAH</span>
-                                                <span className="font-black text-white">{selectedTeam.standing.lost}</span>
+                                                <span className="font-black text-white">{activeTeam.standing.lost}</span>
                                             </div>
                                             <div>
                                                 <span className="text-[10px] text-orange-100 block font-bold">GOL</span>
-                                                <span className="font-black text-white">{selectedTeam.standing.goals_for}:{selectedTeam.standing.goals_against}</span>
+                                                <span className="font-black text-white">{activeTeam.standing.goals_for}:{activeTeam.standing.goals_against}</span>
                                             </div>
                                             <div>
                                                 <span className="text-[10px] text-orange-100 block font-bold">SELISIH</span>
-                                                <span className="font-black text-white">{selectedTeam.standing.goal_difference > 0 ? `+${selectedTeam.standing.goal_difference}` : selectedTeam.standing.goal_difference}</span>
+                                                <span className="font-black text-white">{activeTeam.standing.goal_difference > 0 ? `+${activeTeam.standing.goal_difference}` : activeTeam.standing.goal_difference}</span>
                                             </div>
                                             <div className="bg-white rounded-xl py-0.5 shadow-sm">
                                                 <span className="text-[10px] text-brand-600 block font-black">POIN</span>
-                                                <span className="font-black text-brand-600 text-sm">{selectedTeam.standing.points}</span>
+                                                <span className="font-black text-brand-600 text-sm">{activeTeam.standing.points}</span>
                                             </div>
                                         </div>
                                     )}
@@ -534,19 +654,19 @@ export default function PlayersIndex({
                                         <div className="flex items-center gap-3">
                                             <span className="flex items-center gap-1 text-orange-100 text-[11px] font-semibold">
                                                 <span>⚽ Total Gol Tim:</span>
-                                                <strong className="text-white font-black text-xs">{selectedTeam.summary?.total_goals || 0}</strong>
+                                                <strong className="text-white font-black text-xs">{activeTeam.summary?.total_goals || 0}</strong>
                                             </span>
                                             <span className="flex items-center gap-1 text-orange-100 text-[11px] font-semibold">
                                                 <span>⚡ Total Assist:</span>
-                                                <strong className="text-white font-black text-xs">{selectedTeam.summary?.total_assists || 0}</strong>
+                                                <strong className="text-white font-black text-xs">{activeTeam.summary?.total_assists || 0}</strong>
                                             </span>
                                         </div>
 
                                         {/* Recent Form (W, D, L) */}
-                                        {selectedTeam.recent_form && selectedTeam.recent_form.length > 0 && (
+                                        {activeTeam.recent_form && activeTeam.recent_form.length > 0 && (
                                             <div className="flex items-center space-x-1">
                                                 <span className="text-[10px] text-orange-100 font-bold mr-1">Tren:</span>
-                                                {selectedTeam.recent_form.map((form, fIdx) => (
+                                                {activeTeam.recent_form.map((form, fIdx) => (
                                                     <span
                                                         key={fIdx}
                                                         title={`${form.opponent} (${form.score})`}
@@ -564,23 +684,20 @@ export default function PlayersIndex({
                                     </div>
                                 </div>
 
-                                {/* ========================================== */}
-                                {/* 🔍 FILTER, SEARCH & SORT CONTROLS          */}
-                                {/* ========================================== */}
+                                {/* 🔍 FILTER, SEARCH & SORT CONTROLS */}
                                 <div className="space-y-2">
-                                    {/* Search Bar */}
                                     <div className="relative">
                                         <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                                         <input
                                             type="text"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            value={playerSearchQuery}
+                                            onChange={(e) => setPlayerSearchQuery(e.target.value)}
                                             placeholder="Cari nama atau nomor punggung pemain..."
                                             className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand-500 shadow-xs"
                                         />
-                                        {searchQuery && (
+                                        {playerSearchQuery && (
                                             <button
-                                                onClick={() => setSearchQuery('')}
+                                                onClick={() => setPlayerSearchQuery('')}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                                             >
                                                 <X className="w-3.5 h-3.5" />
@@ -590,7 +707,6 @@ export default function PlayersIndex({
 
                                     {/* Position Filter Chips & Sort Dropdown */}
                                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        {/* Position Filter */}
                                         <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar py-0.5">
                                             {[
                                                 { id: 'all', label: 'Semua Posisi' },
@@ -613,7 +729,6 @@ export default function PlayersIndex({
                                             ))}
                                         </div>
 
-                                        {/* Sort By Dropdown */}
                                         <div className="flex items-center space-x-1 shrink-0">
                                             <ArrowUpDown className="w-3 h-3 text-gray-400" />
                                             <select
@@ -631,9 +746,7 @@ export default function PlayersIndex({
                                     </div>
                                 </div>
 
-                                {/* ========================================== */}
-                                {/* 👥 SQUAD PLAYERS DETAILED STAT CARDS       */}
-                                {/* ========================================== */}
+                                {/* 👥 SQUAD PLAYERS LIST */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between px-2 text-[10px] font-black uppercase text-gray-400 tracking-wider">
                                         <span>DAFTAR SKUAD & STATISTIK TURNAMEN ({filteredSquad.length})</span>
@@ -643,7 +756,7 @@ export default function PlayersIndex({
                                     {filteredSquad.length > 0 ? (
                                         filteredSquad.map((player) => {
                                             const pos = positionBadges[player.position] || { label: player.position, icon: '⚽', color: 'bg-gray-100 text-gray-700 border-gray-200' };
-                                            const isTopScorer = selectedTeam.summary?.top_scorer && selectedTeam.summary.top_scorer.id === player.id && player.goals > 0;
+                                            const isTopScorer = activeTeam.summary?.top_scorer && activeTeam.summary.top_scorer.id === player.id && player.goals > 0;
                                             const isExpanded = expandedPlayerId === player.id;
 
                                             return (
@@ -697,7 +810,6 @@ export default function PlayersIndex({
 
                                                         {/* Stats Badges Right */}
                                                         <div className="flex items-center space-x-1.5 shrink-0">
-                                                            {/* Goals Badge */}
                                                             <span className={`px-2 py-1 rounded-xl text-xs font-black flex items-center space-x-1 ${
                                                                 player.goals > 0 
                                                                     ? 'bg-amber-400 text-amber-950 ring-1 ring-amber-300 shadow-xs' 
@@ -707,7 +819,6 @@ export default function PlayersIndex({
                                                                 <span>{player.goals || 0}</span>
                                                             </span>
 
-                                                            {/* Assists Badge */}
                                                             <span className={`px-2 py-1 rounded-xl text-xs font-black flex items-center space-x-1 ${
                                                                 player.assists > 0 
                                                                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
@@ -717,7 +828,6 @@ export default function PlayersIndex({
                                                                 <span>{player.assists || 0}</span>
                                                             </span>
 
-                                                            {/* Cards Badges (if any) */}
                                                             {(player.yellow_cards > 0 || player.red_cards > 0) && (
                                                                 <div className="flex items-center space-x-1 pl-1">
                                                                     {player.yellow_cards > 0 && (
@@ -803,11 +913,6 @@ export default function PlayersIndex({
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center shadow-sm space-y-2">
-                                <Users className="w-8 h-8 text-gray-300 mx-auto" />
-                                <p className="text-xs text-gray-400 font-medium">Pilih salah satu tim di atas untuk melihat detail skuad dan statistik pemain.</p>
                             </div>
                         )}
                     </motion.div>

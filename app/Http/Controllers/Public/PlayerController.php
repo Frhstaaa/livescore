@@ -28,16 +28,45 @@ class PlayerController extends Controller
 
         $leaderboards = $this->leaderboardService->getLeaderboards($compId);
         $competitions = Competition::orderBy('is_active', 'desc')->get();
-        $teams = Team::orderBy('name', 'asc')->get();
 
-        // Selected Team detail with players & their detailed tournament stats
+        // Get all teams with tournament summary stats for the squad list overview
+        $teams = Team::withCount('players')->orderBy('name', 'asc')->get()->map(function ($t) use ($compId) {
+            $matchIds = MatchModel::where('competition_id', $compId)
+                ->where(function($q) use ($t) {
+                    $q->where('home_team_id', $t->id)->orWhere('away_team_id', $t->id);
+                })
+                ->pluck('id');
+
+            $goals = MatchEvent::whereIn('match_id', $matchIds)
+                ->where('team_id', $t->id)
+                ->where('event_type', 'goal')
+                ->count();
+
+            $standing = Standing::where('competition_id', $compId)
+                ->where('team_id', $t->id)
+                ->first();
+
+            return [
+                'id' => $t->id,
+                'name' => $t->name,
+                'short_name' => $t->short_name,
+                'logo_url' => $t->logo_url,
+                'coach_name' => $t->coach_name,
+                'players_count' => $t->players_count,
+                'total_goals' => $goals,
+                'position' => $standing?->position ?? null,
+                'points' => $standing?->points ?? 0,
+                'played' => $standing?->played ?? 0,
+            ];
+        });
+
+        // Selected Team detail with players & their detailed tournament stats (if a team is selected)
         $selectedTeam = null;
 
-        $targetTeamId = $teamId ?: ($teams->first()?->id);
-        if ($targetTeamId) {
+        if ($teamId) {
             $team = Team::with(['players' => function($q) {
                 $q->orderBy('jersey_number', 'asc')->orderBy('name', 'asc');
-            }])->find($targetTeamId);
+            }])->find($teamId);
 
             if ($team) {
                 // Match IDs for this team in this competition
