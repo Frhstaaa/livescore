@@ -101,8 +101,14 @@ export default function AdminCompetitions({ competitions, allTeams }) {
     };
 
     const handleToggleDraftBubble = (comp) => {
+        const isCurrentActive = Boolean(
+            comp.show_draft_bubble === true || 
+            comp.show_draft_bubble === 1 || 
+            comp.show_draft_bubble === '1' || 
+            comp.show_draft_bubble === 'true'
+        );
         router.post(`/admin/competitions/${comp.id}/toggle-draft-bubble`, {
-            show_draft_bubble: comp.show_draft_bubble !== false ? false : true
+            show_draft_bubble: !isCurrentActive
         });
     };
 

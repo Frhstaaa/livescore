@@ -361,10 +361,17 @@ export default function Index({ registrants = [], competitions = [], teams = [],
 
     const currentPlayer = draftQueue[currentDraftIndex];
     const currentCompetition = competitions.find(c => c.id == selectedCompId) || competitions[0];
+    const isBubbleActive = Boolean(
+        currentCompetition && 
+        (currentCompetition.show_draft_bubble === true || 
+         currentCompetition.show_draft_bubble === 1 || 
+         currentCompetition.show_draft_bubble === '1' ||
+         currentCompetition.show_draft_bubble === 'true')
+    );
 
     const handleTogglePublicBubble = () => {
         if (!currentCompetition) return;
-        const nextVal = currentCompetition.show_draft_bubble === false ? true : false;
+        const nextVal = !isBubbleActive;
         router.post(`/admin/competitions/${currentCompetition.id}/toggle-draft-bubble`, {
             show_draft_bubble: nextVal
         }, {
@@ -493,15 +500,15 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                             <span className="text-[11px] font-black text-gray-800 flex items-center gap-1.5">
                                 <span>🎲 Bubble Pembagian Tim di Publik:</span>
                                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                    currentCompetition.show_draft_bubble !== false
+                                    isBubbleActive
                                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                         : 'bg-gray-100 text-gray-600 border border-gray-200'
                                 }`}>
-                                    {currentCompetition.show_draft_bubble !== false ? 'AKTIF' : 'HIDDEN'}
+                                    {isBubbleActive ? 'AKTIF' : 'HIDDEN'}
                                 </span>
                             </span>
                             <span className="text-[10px] text-gray-400 font-medium block">
-                                {currentCompetition.show_draft_bubble !== false 
+                                {isBubbleActive 
                                     ? 'Pengunjung dapat melihat hasil undian tim secara realtime' 
                                     : 'Ikon bubble disembunyikan dari halaman publik'}
                             </span>
@@ -510,13 +517,13 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                             type="button"
                             onClick={handleTogglePublicBubble}
                             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                currentCompetition.show_draft_bubble !== false ? 'bg-emerald-500' : 'bg-gray-300'
+                                isBubbleActive ? 'bg-emerald-500' : 'bg-gray-300'
                             }`}
                             title="Klik untuk menampilkan / menyembunyikan bubble di publik"
                         >
                             <span
                                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    currentCompetition.show_draft_bubble !== false ? 'translate-x-5' : 'translate-x-0'
+                                    isBubbleActive ? 'translate-x-5' : 'translate-x-0'
                                 }`}
                             />
                         </button>

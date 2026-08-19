@@ -34,8 +34,14 @@ export default function DraftBubble() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPosition, setSelectedPosition] = useState('ALL');
 
-    // Only display if activeCompetition has show_draft_bubble enabled
-    const isVisible = activeCompetition?.show_draft_bubble !== false;
+    // Only display if activeCompetition has show_draft_bubble explicitly enabled
+    const isVisible = Boolean(
+        activeCompetition && 
+        (activeCompetition.show_draft_bubble === true || 
+         activeCompetition.show_draft_bubble === 1 || 
+         activeCompetition.show_draft_bubble === '1' ||
+         activeCompetition.show_draft_bubble === 'true')
+    );
 
     const fetchDraftData = async (silent = false) => {
         if (!silent) setLoading(true);

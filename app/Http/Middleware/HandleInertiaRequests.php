@@ -30,7 +30,17 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
-            'activeCompetition' => fn () => \App\Models\Competition::where('is_active', true)->select('id', 'name', 'season', 'show_draft_bubble')->first(),
+            'activeCompetition' => function () {
+                $comp = \App\Models\Competition::where('is_active', true)->first() 
+                    ?? \App\Models\Competition::first();
+                if (!$comp) return null;
+                return [
+                    'id' => $comp->id,
+                    'name' => $comp->name,
+                    'season' => $comp->season,
+                    'show_draft_bubble' => (bool) $comp->show_draft_bubble,
+                ];
+            },
         ]);
     }
 }

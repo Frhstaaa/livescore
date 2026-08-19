@@ -81,9 +81,13 @@ class CompetitionController extends Controller
     public function toggleDraftBubble(Request $request, int $id)
     {
         $competition = Competition::findOrFail($id);
-        $newState = $request->has('show_draft_bubble') 
-            ? (bool) $request->input('show_draft_bubble') 
-            : !$competition->show_draft_bubble;
+        
+        if ($request->has('show_draft_bubble')) {
+            $val = $request->input('show_draft_bubble');
+            $newState = ($val === true || $val === 'true' || $val === 1 || $val === '1');
+        } else {
+            $newState = !$competition->show_draft_bubble;
+        }
 
         $competition->update(['show_draft_bubble' => $newState]);
 
