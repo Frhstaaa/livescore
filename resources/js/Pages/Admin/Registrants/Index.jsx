@@ -149,6 +149,30 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         setShowRouletteModal(true);
     };
 
+    // Broadcast live roulette state to public viewers
+    const syncLiveDraftState = (stage, nextTeams, nextIdx, nextQueue = draftQueue, activeIdx = rouletteActiveTeamIndex, lastDrafted = lastDraftedPlayer) => {
+        if (!selectedCompId) return;
+        const player = nextQueue && nextIdx < nextQueue.length ? nextQueue[nextIdx] : null;
+
+        fetch('/admin/live-draft/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify({
+                competition_id: selectedCompId,
+                stage: stage,
+                current_draft_index: nextIdx,
+                total_players: nextQueue ? nextQueue.length : 0,
+                current_player: player ? { id: player.id, name: player.name, position: player.position } : null,
+                active_team_index: activeIdx,
+                last_drafted: lastDrafted,
+                teams: nextTeams,
+            })
+        }).catch(err => console.log('Live sync error:', err));
+    };
+
     const startRouletteDraft = () => {
         // Initialize teams based on selected teamCount
         const count = Math.min(Math.max(2, teamCount), draftQueue.length);
@@ -166,6 +190,7 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         setCurrentDraftIndex(0);
         setRouletteStage('spinning');
         setLastDraftedPlayer(null);
+        syncLiveDraftState('spinning', initialTeams, 0, draftQueue, 0, null);
     };
 
     // Single step spin for current player
@@ -224,11 +249,22 @@ export default function Index({ registrants = [], competitions = [], teams = [],
                     return t;
                 });
 
+                const lastDraftObj = { player, team: updatedTeams[targetTeamIndex] };
                 setDraftedTeams(updatedTeams);
-                setLastDraftedPlayer({ player, team: updatedTeams[targetTeamIndex] });
+                setLastDraftedPlayer(lastDraftObj);
 
                 const nextIdx = queueIdx + 1;
                 setCurrentDraftIndex(nextIdx);
+
+                // Broadcast live step to public viewers
+                syncLiveDraftState(
+                    nextIdx >= draftQueue.length ? 'finished' : 'spinning',
+                    updatedTeams,
+                    nextIdx,
+                    draftQueue,
+                    targetTeamIndex,
+                    lastDraftObj
+                );
 
                 if (nextIdx >= draftQueue.length) {
                     // Draft Finished!
@@ -288,6 +324,7 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         setCurrentDraftIndex(draftQueue.length);
         setRouletteStage('finished');
         setAutoSpin(false);
+        syncLiveDraftState('finished', teamsCopy, draftQueue.length, draftQueue, 0, null);
     };
 
     const saveRouletteResult = () => {
@@ -303,6 +340,14 @@ export default function Index({ registrants = [], competitions = [], teams = [],
         }, {
             onSuccess: () => {
                 setShowRouletteModal(false);
+                fetch('/admin/live-draft/clear', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                    body: JSON.stringify({ competition_id: selectedCompId })
+                }).catch(() => {});
             }
         });
     };

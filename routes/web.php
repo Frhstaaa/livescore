@@ -107,11 +107,13 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('/sponsors/{id}', [SponsorController::class, 'update'])->name('sponsors.update');
     Route::delete('/sponsors/{id}', [SponsorController::class, 'destroy'])->name('sponsors.destroy');
 
-    // Registrants
+    // Registrants & Live Draft Roulette
     Route::get('/registrants', [AdminRegistrationController::class, 'index'])->name('registrants.index');
     Route::post('/registrants', [AdminRegistrationController::class, 'store'])->name('registrants.store');
     Route::post('/registrants/randomize', [AdminRegistrationController::class, 'randomize'])->name('registrants.randomize');
     Route::put('/registrants/{id}/status', [AdminRegistrationController::class, 'updateStatus'])->name('registrants.status');
     Route::post('/registrants/{id}/assign', [AdminRegistrationController::class, 'assignToTeam'])->name('registrants.assign');
     Route::delete('/registrants/{id}', [AdminRegistrationController::class, 'destroy'])->name('registrants.destroy');
+    Route::post('/live-draft/sync', [TeamDraftController::class, 'syncLiveDraft'])->name('live-draft.sync');
+    Route::post('/live-draft/clear', [TeamDraftController::class, 'clearLiveDraft'])->name('live-draft.clear');
 });
