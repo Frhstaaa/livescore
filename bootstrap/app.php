@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             SecurityHeaders::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+            'admin/live-draft/*',
+        ]);
         $middleware->redirectGuestsTo(fn () => route('admin.login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {

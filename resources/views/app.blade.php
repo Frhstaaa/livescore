@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>RS LIVASYA FUTSAL LIVESCORE</title>
     <!-- Content Security Policy for Iframe / Simulators -->
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' http: https: data: blob:; script-src-elem * 'unsafe-inline' 'unsafe-eval' http: https: data: blob:; style-src * 'unsafe-inline' https: http:; font-src * data: https: http:; img-src * data: blob: http: https:; connect-src * http: https: ws: wss:;">

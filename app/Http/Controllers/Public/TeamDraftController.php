@@ -16,7 +16,8 @@ class TeamDraftController extends Controller
      */
     public function getDraftData(Request $request): JsonResponse
     {
-        $activeComp = Competition::where('is_active', true)->first();
+        $activeComp = Competition::where('is_active', true)->first() 
+            ?? Competition::first();
 
         if (!$activeComp) {
             return response()->json([
@@ -30,7 +31,7 @@ class TeamDraftController extends Controller
         // Check if there is an active live draft session broadcasted from Admin panel
         $liveDraftSession = Cache::get('live_draft_session_' . $activeComp->id);
 
-        if ($liveDraftSession && !empty($liveDraftSession['is_live'])) {
+        if ($liveDraftSession && !empty($liveDraftSession['teams'])) {
             return response()->json([
                 'success' => true,
                 'is_live' => true,
@@ -106,7 +107,7 @@ class TeamDraftController extends Controller
             'teams' => 'required|array',
         ]);
 
-        $validated['is_live'] = in_array($validated['stage'], ['spinning', 'finished']);
+        $validated['is_live'] = in_array($validated['stage'], ['setup', 'spinning', 'finished']);
         $validated['updated_at'] = now()->toIso8601String();
 
         Cache::put('live_draft_session_' . $validated['competition_id'], $validated, now()->addHours(6));
