@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePage } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, X, RefreshCw, Search, Shield, Trophy, Sparkles, ChevronRight, Check, Play, CheckCircle } from 'lucide-react';
@@ -10,13 +10,97 @@ const positionConfig = {
     FWD: { label: 'Forward', icon: '🎯', bg: 'bg-rose-100 text-rose-900 border-rose-300' },
 };
 
-const TEAM_GRADIENTS = [
-    'from-red-600 to-rose-500',
-    'from-blue-600 to-cyan-500',
-    'from-emerald-600 to-teal-500',
-    'from-amber-500 to-yellow-400',
-    'from-purple-600 to-indigo-500',
-    'from-orange-500 to-amber-500',
+const TEAM_THEMES = [
+    {
+        name: 'Tim Garuda',
+        short: 'GAR',
+        bg: 'bg-red-500',
+        gradient: 'from-red-600 to-rose-500',
+        activeBg: 'bg-gradient-to-r from-red-600 to-rose-500',
+        border: 'border-red-500',
+        cardBorder: 'border-red-200',
+        cardBg: 'bg-red-50/30',
+        text: 'text-red-600',
+        badgeBg: 'bg-red-100 text-red-800 border-red-200',
+        ring: 'ring-red-400',
+        dot: 'bg-red-500',
+        shadow: 'shadow-red-500/40',
+    },
+    {
+        name: 'Tim Elang',
+        short: 'ELG',
+        bg: 'bg-blue-500',
+        gradient: 'from-blue-600 to-cyan-500',
+        activeBg: 'bg-gradient-to-r from-blue-600 to-cyan-500',
+        border: 'border-blue-500',
+        cardBorder: 'border-blue-200',
+        cardBg: 'bg-blue-50/30',
+        text: 'text-blue-600',
+        badgeBg: 'bg-blue-100 text-blue-800 border-blue-200',
+        ring: 'ring-blue-400',
+        dot: 'bg-blue-500',
+        shadow: 'shadow-blue-500/40',
+    },
+    {
+        name: 'Tim Rajawali',
+        short: 'RJW',
+        bg: 'bg-emerald-500',
+        gradient: 'from-emerald-600 to-teal-500',
+        activeBg: 'bg-gradient-to-r from-emerald-600 to-teal-500',
+        border: 'border-emerald-500',
+        cardBorder: 'border-emerald-200',
+        cardBg: 'bg-emerald-50/30',
+        text: 'text-emerald-600',
+        badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        ring: 'ring-emerald-400',
+        dot: 'bg-emerald-500',
+        shadow: 'shadow-emerald-500/40',
+    },
+    {
+        name: 'Tim Harimau',
+        short: 'HRM',
+        bg: 'bg-amber-500',
+        gradient: 'from-amber-500 to-orange-500',
+        activeBg: 'bg-gradient-to-r from-amber-500 to-orange-500',
+        border: 'border-amber-500',
+        cardBorder: 'border-amber-200',
+        cardBg: 'bg-amber-50/30',
+        text: 'text-amber-600',
+        badgeBg: 'bg-amber-100 text-amber-800 border-amber-200',
+        ring: 'ring-amber-400',
+        dot: 'bg-amber-500',
+        shadow: 'shadow-amber-500/40',
+    },
+    {
+        name: 'Tim Singa',
+        short: 'SNG',
+        bg: 'bg-purple-500',
+        gradient: 'from-purple-600 to-indigo-500',
+        activeBg: 'bg-gradient-to-r from-purple-600 to-indigo-500',
+        border: 'border-purple-500',
+        cardBorder: 'border-purple-200',
+        cardBg: 'bg-purple-50/30',
+        text: 'text-purple-600',
+        badgeBg: 'bg-purple-100 text-purple-800 border-purple-200',
+        ring: 'ring-purple-400',
+        dot: 'bg-purple-500',
+        shadow: 'shadow-purple-500/40',
+    },
+    {
+        name: 'Tim Komodo',
+        short: 'KMD',
+        bg: 'bg-teal-500',
+        gradient: 'from-teal-500 to-cyan-600',
+        activeBg: 'bg-gradient-to-r from-teal-500 to-cyan-600',
+        border: 'border-teal-500',
+        cardBorder: 'border-teal-200',
+        cardBg: 'bg-teal-50/30',
+        text: 'text-teal-600',
+        badgeBg: 'bg-teal-100 text-teal-800 border-teal-200',
+        ring: 'ring-teal-400',
+        dot: 'bg-teal-500',
+        shadow: 'shadow-teal-500/40',
+    },
 ];
 
 export default function DraftBubble() {
@@ -33,6 +117,11 @@ export default function DraftBubble() {
     });
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPosition, setSelectedPosition] = useState('ALL');
+
+    // Visual animated active index for slot-machine roulette feel
+    const [visualActiveTeamIdx, setVisualActiveTeamIdx] = useState(0);
+    const [isCycling, setIsCycling] = useState(false);
+    const lastPlayerIdRef = useRef(null);
 
     // Only display if activeCompetition has show_draft_bubble explicitly enabled
     const isVisible = Boolean(
@@ -72,8 +161,6 @@ export default function DraftBubble() {
         };
     }, [isOpen]);
 
-    if (!isVisible) return null;
-
     const live = draftData.live_draft;
     const isLiveSpinning = draftData.is_live && live && (live.stage === 'spinning' || live.stage === 'setup');
     const isLiveFinished = draftData.is_live && live && live.stage === 'finished';
@@ -81,8 +168,44 @@ export default function DraftBubble() {
     // Teams to display: if live, use live.teams, else use database draftData.teams
     const displayTeams = (draftData.is_live && live?.teams) ? live.teams : (draftData.teams || []);
 
+    // Interactive spin simulation on new player or spin state change
+    useEffect(() => {
+        const currentPId = live?.current_player?.id;
+        const totalT = displayTeams.length || 1;
+
+        if (isLiveSpinning && currentPId && currentPId !== lastPlayerIdRef.current) {
+            lastPlayerIdRef.current = currentPId;
+            setIsCycling(true);
+
+            // Run a rapid 1.2s decelerating wheel animation cycle
+            let step = 0;
+            const target = typeof live.active_team_index === 'number' ? live.active_team_index : 0;
+            const totalSteps = 12 + (target % totalT);
+            let speed = 55;
+
+            const cycle = () => {
+                step++;
+                setVisualActiveTeamIdx((prev) => (prev + 1) % totalT);
+                if (step < totalSteps) {
+                    speed += 12;
+                    setTimeout(cycle, speed);
+                } else {
+                    setVisualActiveTeamIdx(target);
+                    setIsCycling(false);
+                }
+            };
+
+            cycle();
+        } else if (live && typeof live.active_team_index === 'number' && !isCycling) {
+            setVisualActiveTeamIdx(live.active_team_index);
+        }
+    }, [live?.current_player?.id, live?.active_team_index, isLiveSpinning, displayTeams.length]);
+
+    if (!isVisible) return null;
+
     // Filter players based on search and position
-    const filteredTeams = displayTeams.map((team) => {
+    const filteredTeams = displayTeams.map((team, idx) => {
+        const theme = team.theme || TEAM_THEMES[idx % TEAM_THEMES.length];
         const filteredPlayers = (team.players || []).filter((p) => {
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesPos = selectedPosition === 'ALL' || p.position === selectedPosition;
@@ -91,6 +214,7 @@ export default function DraftBubble() {
 
         return {
             ...team,
+            theme,
             filteredPlayers,
         };
     }).filter((team) => {
@@ -108,7 +232,7 @@ export default function DraftBubble() {
                     onClick={() => setIsOpen(true)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
-                    className="group relative flex items-center space-x-2 pl-3 pr-3.5 py-2.5 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-amber-500 text-white shadow-xl shadow-brand-500/35 border-2 border-white/80 active:shadow-sm"
+                    className="group relative flex items-center space-x-2 pl-3 pr-3.5 py-2.5 rounded-full bg-gradient-to-r from-brand-600 via-amber-500 to-orange-500 text-white shadow-xl shadow-brand-500/35 border-2 border-white/80 active:shadow-sm"
                 >
                     {/* Glowing pulse ring */}
                     <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-brand-500 to-amber-400 opacity-60 blur-sm group-hover:opacity-100 transition duration-300 animate-pulse pointer-events-none" />
@@ -117,7 +241,8 @@ export default function DraftBubble() {
                         <span className="text-base animate-bounce" style={{ animationDuration: '2.5s' }}>🎲</span>
                         <span className="tracking-tight drop-shadow-sm">Pembagian Tim</span>
                         {isLiveSpinning ? (
-                            <span className="px-1.5 py-0.2 text-[9px] font-black bg-red-500 text-white rounded-full animate-pulse">
+                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-red-600 text-white rounded-full animate-pulse flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                                 LIVE
                             </span>
                         ) : (
@@ -191,88 +316,131 @@ export default function DraftBubble() {
                             </div>
 
                             {/* ======================================================== */}
-                            {/* 🔴 LIVE ROULETTE ARENA (When Admin is actively spinning) */}
+                            {/* 🔴 LIVE INTERACTIVE ROULETTE ARENA (Live Spin UI)        */}
                             {/* ======================================================== */}
                             {isLiveSpinning && live && (
-                                <div className="p-3 bg-white border-b border-gray-200/80 shadow-xs space-y-3 shrink-0">
-                                    {/* Live Progress */}
+                                <div className="p-3.5 bg-white border-b border-gray-200/80 shadow-xs space-y-3 shrink-0">
+                                    {/* Live Progress Bar */}
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-[11px] font-bold text-gray-500">
                                             <span className="flex items-center gap-1.5 text-brand-600 font-black">
-                                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                                Pemain {(live.current_draft_index || 0) + 1} dari {live.total_players || 0}
+                                                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                                                Pemain <strong className="text-gray-900">{(live.current_draft_index || 0) + 1}</strong> dari <strong className="text-gray-900">{live.total_players || 0}</strong>
                                             </span>
-                                            <span className="text-[10px] font-extrabold text-gray-400">
+                                            <span className="text-[10px] font-extrabold text-gray-500">
                                                 {Math.round(((live.current_draft_index || 0) / (live.total_players || 1)) * 100)}% Selesai
                                             </span>
                                         </div>
-                                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-gradient-to-r from-brand-500 to-amber-400 transition-all duration-300 rounded-full"
+                                                className="h-full bg-gradient-to-r from-brand-500 via-amber-400 to-orange-500 transition-all duration-500 rounded-full shadow-xs"
                                                 style={{ width: `${((live.current_draft_index || 0) / (live.total_players || 1)) * 100}%` }}
                                             />
                                         </div>
                                     </div>
 
-                                    {/* Center Player Being Spun */}
-                                    {live.current_player && (
-                                        <div className="bg-gradient-to-br from-gray-50 via-white to-amber-50/40 p-3 rounded-2xl border border-brand-200/60 shadow-xs text-center space-y-2 relative overflow-hidden">
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200 inline-block">
-                                                🎲 Sedang Diundi Oleh Panitia
+                                    {/* Roulette Center Arena */}
+                                    <div className="bg-gradient-to-b from-gray-50/80 via-white to-amber-50/30 p-3.5 rounded-3xl border border-gray-200/70 shadow-xs text-center space-y-3 relative overflow-hidden">
+                                        {/* Glowing ray backdrop */}
+                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-400/15 rounded-full blur-2xl pointer-events-none" />
+
+                                        {/* Status Header Badge */}
+                                        <div className="flex items-center justify-center">
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-brand-700 bg-brand-50 px-3 py-0.5 rounded-full border border-brand-200 inline-flex items-center gap-1.5 shadow-2xs">
+                                                <Sparkles className="w-3 h-3 text-amber-500 animate-spin" style={{ animationDuration: '3s' }} />
+                                                <span>Sedang Diundi Oleh Panitia</span>
                                             </span>
+                                        </div>
 
-                                            <div className="flex items-center justify-center space-x-2.5">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-400 text-white font-black text-sm flex items-center justify-center shadow-sm">
-                                                    {live.current_player.name?.charAt(0).toUpperCase() || 'P'}
-                                                </div>
-                                                <div className="text-left min-w-0">
-                                                    <h4 className="text-sm font-black text-gray-900 truncate">
-                                                        {live.current_player.name}
-                                                    </h4>
-                                                    <p className="text-[11px] text-gray-500 font-semibold flex items-center gap-1">
-                                                        <span>Posisi:</span>
-                                                        <span className="font-bold text-brand-600">
-                                                            {positionConfig[live.current_player.position]?.icon} {live.current_player.position}
-                                                        </span>
-                                                    </p>
-                                                </div>
+                                        {/* Current Player Card with Pop Animation */}
+                                        {live.current_player ? (
+                                            <div className="flex justify-center">
+                                                <AnimatePresence mode="wait">
+                                                    <motion.div
+                                                        key={live.current_player?.id || live.current_draft_index}
+                                                        initial={{ scale: 0.85, y: 10, opacity: 0 }}
+                                                        animate={{ scale: 1, y: 0, opacity: 1 }}
+                                                        exit={{ scale: 0.85, y: -10, opacity: 0 }}
+                                                        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                                                        className="inline-flex items-center space-x-3 bg-white p-3 rounded-2xl border-2 border-brand-400/50 shadow-md max-w-full"
+                                                    >
+                                                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-amber-500 to-orange-500 text-white font-black text-base flex items-center justify-center shadow-md shadow-brand-500/25 shrink-0">
+                                                            {live.current_player.name?.charAt(0).toUpperCase() || 'P'}
+                                                        </div>
+                                                        <div className="text-left min-w-0 pr-2">
+                                                            <h4 className="text-sm sm:text-base font-black text-gray-900 truncate">
+                                                                {live.current_player.name}
+                                                            </h4>
+                                                            <p className="text-[11px] text-gray-500 font-semibold flex items-center gap-1 mt-0.5">
+                                                                <span>Posisi:</span>
+                                                                <span className="font-bold text-brand-600 flex items-center gap-1">
+                                                                    {positionConfig[live.current_player.position]?.icon} {live.current_player.position}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    </motion.div>
+                                                </AnimatePresence>
                                             </div>
+                                        ) : (
+                                            <div className="py-2 text-xs font-bold text-gray-400">
+                                                Persiapan undian pemain...
+                                            </div>
+                                        )}
 
-                                            {/* Team Target Candidates Carousel */}
-                                            <div className="pt-1 flex items-center justify-center gap-1.5 flex-wrap">
+                                        {/* Spinning Roulette Teams Carousel */}
+                                        <div className="pt-1">
+                                            <span className="text-[10px] font-bold text-gray-400 block mb-1.5 uppercase tracking-wide">
+                                                Memilih Tim Tujuan:
+                                            </span>
+                                            <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                                                 {displayTeams.map((t, idx) => {
-                                                    const isActive = live.active_team_index === idx;
+                                                    const theme = t.theme || TEAM_THEMES[idx % TEAM_THEMES.length];
+                                                    const isActive = visualActiveTeamIdx === idx;
+
                                                     return (
-                                                        <div
+                                                        <motion.div
                                                             key={t.id || idx}
-                                                            className={`px-2.5 py-1 rounded-xl border text-[10px] font-black transition-all flex items-center space-x-1 ${
+                                                            animate={{
+                                                                scale: isActive ? 1.08 : 0.95,
+                                                                y: isActive ? -2 : 0,
+                                                            }}
+                                                            transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                                                            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl border font-black text-[11px] sm:text-xs transition-all flex items-center space-x-1.5 ${
                                                                 isActive
-                                                                    ? 'bg-brand-500 text-white border-brand-500 shadow-md scale-105 ring-2 ring-brand-400/40'
-                                                                    : 'bg-white text-gray-600 border-gray-200 opacity-60'
+                                                                    ? `${theme.activeBg} border-transparent text-white shadow-lg ${theme.shadow} ring-3 ${theme.ring}`
+                                                                    : 'bg-white text-gray-700 border-gray-200 opacity-60'
                                                             }`}
                                                         >
-                                                            <Trophy className="w-3 h-3 shrink-0" />
+                                                            {isActive ? (
+                                                                <Sparkles className="w-3 h-3 text-white animate-spin" style={{ animationDuration: '4s' }} />
+                                                            ) : (
+                                                                <Trophy className="w-3 h-3 text-gray-400" />
+                                                            )}
                                                             <span className="truncate">{t.name}</span>
-                                                        </div>
+                                                        </motion.div>
                                                     );
                                                 })}
                                             </div>
-
-                                            {/* Last Assigned Banner */}
-                                            {live.last_drafted && (
-                                                <div className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 py-1 px-3 rounded-xl inline-flex items-center gap-1 max-w-full">
-                                                    <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
-                                                    <span className="truncate">
-                                                        <strong>{live.last_drafted.player?.name}</strong> ➔ <strong>{live.last_drafted.team?.name}</strong>
-                                                    </span>
-                                                </div>
-                                            )}
                                         </div>
-                                    )}
+
+                                        {/* Last Assigned Player Celebration Banner */}
+                                        {live.last_drafted && (
+                                            <motion.div
+                                                initial={{ scale: 0.92, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                className="text-[11px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 py-1.5 px-3.5 rounded-2xl inline-flex items-center gap-1.5 max-w-full shadow-2xs"
+                                            >
+                                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                <span className="truncate">
+                                                    <strong>{live.last_drafted.player?.name}</strong> ➔ <strong>{live.last_drafted.team?.name}</strong>
+                                                </span>
+                                            </motion.div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Search & Filter Bar (Only show if not live spinning or if user wants to filter roster) */}
+                            {/* Search & Filter Bar */}
                             <div className="p-3 bg-white border-b border-gray-100 space-y-2 shrink-0">
                                 <div className="relative">
                                     <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -358,24 +526,24 @@ export default function DraftBubble() {
 
                                         <div className="space-y-2.5">
                                             {filteredTeams.map((team, idx) => {
-                                                const gradient = TEAM_GRADIENTS[idx % TEAM_GRADIENTS.length];
+                                                const theme = team.theme || TEAM_THEMES[idx % TEAM_THEMES.length];
                                                 const players = team.filteredPlayers || [];
 
                                                 return (
                                                     <div
                                                         key={team.id || idx}
-                                                        className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden"
+                                                        className={`bg-white rounded-2xl border ${theme.cardBorder || 'border-gray-200'} shadow-xs overflow-hidden`}
                                                     >
                                                         {/* Team Header Bar */}
-                                                        <div className="p-2.5 sm:p-3 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
+                                                        <div className={`p-2.5 sm:p-3 ${theme.cardBg || 'bg-gray-50/80'} border-b ${theme.cardBorder || 'border-gray-100'} flex items-center justify-between`}>
                                                             <div className="flex items-center space-x-2 min-w-0">
-                                                                <div className={`w-3 h-3 rounded-full bg-gradient-to-tr ${gradient} shrink-0`} />
+                                                                <div className={`w-3 h-3 rounded-full ${theme.dot || 'bg-brand-500'} shrink-0`} />
                                                                 <h4 className="text-xs font-black text-gray-900 truncate">
                                                                     {team.name}
                                                                 </h4>
                                                             </div>
 
-                                                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white text-gray-700 border border-gray-200 shrink-0">
+                                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${theme.badgeBg || 'bg-white text-gray-700 border border-gray-200'} shrink-0`}>
                                                                 {team.players?.length || 0} Pemain
                                                             </span>
                                                         </div>
