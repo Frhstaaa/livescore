@@ -101,25 +101,36 @@ export default function AboutIndex({ sponsors, competition }) {
             )}
 
             {/* Gold & Silver Sponsors */}
-            {sponsors?.gold?.length > 0 && (
+            {(sponsors?.gold?.length > 0 || sponsors?.silver?.length > 0) && (
                 <div className="mb-6">
                     <h3 className="text-xs font-black text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-3 px-1">
-                        GOLD SPONSORS
+                        SPONSORS
                     </h3>
 
                     <div className="grid grid-cols-2 gap-3">
-                        {sponsors.gold.map((s) => (
-                            <div key={s.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-gray-100 dark:border-slate-700/60 shadow-card text-center flex flex-col items-center justify-center">
-                                <div className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-slate-700 border border-brand-100 dark:border-slate-600 flex items-center justify-center font-black text-brand-600 dark:text-brand-400 mb-2">
-                                    {s.logo_url ? (
-                                        <img src={s.logo_url} alt={s.name} className="w-full h-full object-contain p-1 rounded-xl" />
-                                    ) : (
-                                        s.name[0]
-                                    )}
+                        {[...(sponsors.gold || []), ...(sponsors.silver || [])].map((s) => {
+                            const CardContent = (
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-gray-100 dark:border-slate-700/60 shadow-card text-center flex flex-col items-center justify-center h-full hover:shadow-md transition-all">
+                                    <div className="w-14 h-14 rounded-xl bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 flex items-center justify-center font-black text-brand-600 dark:text-brand-400 mb-2 overflow-hidden">
+                                        {s.logo_url ? (
+                                            <img src={s.logo_url} alt={s.name} className="w-full h-full object-contain p-1 rounded-xl" />
+                                        ) : (
+                                            <span className="text-lg font-bold">{s.name[0]}</span>
+                                        )}
+                                    </div>
+                                    <h4 className="text-xs font-bold text-gray-900 dark:text-slate-100 leading-tight line-clamp-2">{s.name}</h4>
+                                    <span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase mt-0.5">{s.tier}</span>
                                 </div>
-                                <h4 className="text-xs font-bold text-gray-900 dark:text-slate-100 leading-tight">{s.name}</h4>
-                            </div>
-                        ))}
+                            );
+
+                            return s.website_url ? (
+                                <a key={s.id} href={s.website_url} target="_blank" rel="noopener noreferrer" className="block">
+                                    {CardContent}
+                                </a>
+                            ) : (
+                                <div key={s.id}>{CardContent}</div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -132,14 +143,28 @@ export default function AboutIndex({ sponsors, competition }) {
                     </h3>
 
                     <div className="grid grid-cols-3 gap-2">
-                        {[...(sponsors.partner || []), ...(sponsors.media || [])].map((s) => (
-                            <div key={s.id} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-gray-100 dark:border-slate-700/60 shadow-sm text-center">
-                                <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-gray-700 dark:text-slate-200 mx-auto mb-1">
-                                    {s.name[0]}
+                        {[...(sponsors.partner || []), ...(sponsors.media || [])].map((s) => {
+                            const CardContent = (
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 border border-gray-100 dark:border-slate-700/60 shadow-sm text-center flex flex-col items-center justify-center h-full hover:shadow-md transition-all">
+                                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 flex items-center justify-center font-bold text-xs text-gray-700 dark:text-slate-200 mx-auto mb-1.5 overflow-hidden">
+                                        {s.logo_url ? (
+                                            <img src={s.logo_url} alt={s.name} className="w-full h-full object-contain p-1" />
+                                        ) : (
+                                            <span className="text-sm font-bold">{s.name[0]}</span>
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-800 dark:text-slate-200 block truncate w-full">{s.name}</span>
                                 </div>
-                                <span className="text-[10px] font-semibold text-gray-800 dark:text-slate-200 block truncate">{s.name}</span>
-                            </div>
-                        ))}
+                            );
+
+                            return s.website_url ? (
+                                <a key={s.id} href={s.website_url} target="_blank" rel="noopener noreferrer" className="block">
+                                    {CardContent}
+                                </a>
+                            ) : (
+                                <div key={s.id}>{CardContent}</div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
