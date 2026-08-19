@@ -22,11 +22,13 @@ class Competition extends Model
         'start_date',
         'end_date',
         'is_active',
+        'show_draft_bubble',
         'about_description',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'show_draft_bubble' => 'boolean',
         'start_date' => 'date',
         'end_date' => 'date',
         'match_duration_minutes' => 'integer',

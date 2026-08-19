@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { Trophy, Award, Star, Activity, Info, Newspaper, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PwaInstallPrompt from '@/Components/PwaInstallPrompt';
+import DraftBubble from '@/Components/DraftBubble';
 
 export default function MobileLayout({ children }) {
     const { url } = usePage();
@@ -81,6 +82,9 @@ export default function MobileLayout({ children }) {
                 <main className="flex-1 px-4 py-3">
                     {children}
                 </main>
+
+                {/* Real-time Team Draft Floating Bubble Button */}
+                <DraftBubble />
 
                 {/* Bottom Navigation Bar */}
                 <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-1.5 z-50 flex justify-around items-center shadow-lg">

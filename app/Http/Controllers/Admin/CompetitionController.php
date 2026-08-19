@@ -38,6 +38,7 @@ class CompetitionController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'is_active' => 'boolean',
+            'show_draft_bubble' => 'boolean',
             'about_description' => 'nullable|string',
         ]);
 
@@ -64,6 +65,7 @@ class CompetitionController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'is_active' => 'boolean',
+            'show_draft_bubble' => 'boolean',
             'about_description' => 'nullable|string',
         ]);
 
@@ -74,6 +76,19 @@ class CompetitionController extends Controller
         $competition = Competition::findOrFail($id);
         $competition->update($validated);
         return back()->with('message', 'Pengaturan kompetisi berhasil diperbarui');
+    }
+
+    public function toggleDraftBubble(Request $request, int $id)
+    {
+        $competition = Competition::findOrFail($id);
+        $newState = $request->has('show_draft_bubble') 
+            ? (bool) $request->input('show_draft_bubble') 
+            : !$competition->show_draft_bubble;
+
+        $competition->update(['show_draft_bubble' => $newState]);
+
+        $statusText = $newState ? 'ditampilkan' : 'disembunyikan';
+        return back()->with('message', "Bubble Pembagian Tim di publik berhasil {$statusText}.");
     }
 
     public function syncTeams(Request $request, int $id)

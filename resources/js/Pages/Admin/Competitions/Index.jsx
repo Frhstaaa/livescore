@@ -24,6 +24,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
         start_date: '',
         end_date: '',
         is_active: false,
+        show_draft_bubble: true,
     });
 
     const submit = (e) => {
@@ -57,6 +58,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
             start_date: c.start_date || '',
             end_date: c.end_date || '',
             is_active: c.is_active || false,
+            show_draft_bubble: c.show_draft_bubble !== undefined ? Boolean(c.show_draft_bubble) : true,
         });
     };
 
@@ -98,6 +100,12 @@ export default function AdminCompetitions({ competitions, allTeams }) {
         });
     };
 
+    const handleToggleDraftBubble = (comp) => {
+        router.post(`/admin/competitions/${comp.id}/toggle-draft-bubble`, {
+            show_draft_bubble: comp.show_draft_bubble !== false ? false : true
+        });
+    };
+
     // Preset Durasi Selector
     const applyDurationPreset = (halfMin, htMin) => {
         setData((prev) => ({
@@ -109,254 +117,277 @@ export default function AdminCompetitions({ competitions, allTeams }) {
     };
 
     return (
-        <AdminLayout title="Pengaturan Turnamen">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Form Create / Edit Competition */}
-                <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center">
-                        <Trophy className="w-5 h-5 text-brand-500 mr-2" />
-                        {editingComp ? 'Edit Turnamen Futsal' : 'Tambah Turnamen Futsal Baru'}
-                    </h3>
+        <AdminLayout title="Pengaturan Turnamen Futsal">
+            <div className="space-y-6">
+                {/* Header Page */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Turnamen & Kompetisi</h2>
+                        <p className="text-xs text-gray-500">Kelola turnamen futsal, sistem pertandingan, durasi babak, dan visibilitas publik.</p>
+                    </div>
+                </div>
 
-                    <form onSubmit={submit} className="space-y-4 text-xs">
-                        <div>
-                            <label className="block font-bold text-gray-700 mb-1">Nama Turnamen / Kompetisi</label>
-                            <input
-                                type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand-500"
-                                placeholder="Contoh: Livasya Futsal League 2026"
-                                required
-                            />
-                            {errors.name && <span className="text-red-500 text-[10px] mt-1 block">{errors.name}</span>}
+                {/* Main Grid: Form (Left 1 Col) & List (Right 2 Cols) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    
+                    {/* Left Form: Create / Edit Competition */}
+                    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm sticky top-6">
+                        <div className="flex items-center space-x-2 mb-4 pb-3 border-b border-gray-100">
+                            <div className="p-2 rounded-xl bg-brand-50 text-brand-600">
+                                <Trophy className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900">
+                                    {editingComp ? 'Edit Turnamen' : 'Tambah Turnamen Baru'}
+                                </h3>
+                                <p className="text-[11px] text-gray-400">Atur parameter dan format pertandingan.</p>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <form onSubmit={submit} className="space-y-3.5">
                             <div>
-                                <label className="block font-bold text-gray-700 mb-1">Musim / Season</label>
+                                <label className="block font-bold text-gray-700 text-xs mb-1">Nama Turnamen</label>
                                 <input
                                     type="text"
-                                    value={data.season}
-                                    onChange={(e) => setData('season', e.target.value)}
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900"
-                                    placeholder="2026 / Season 1"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    placeholder="Contoh: RS LIVASYA CUP 2026"
+                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 text-xs focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all"
                                     required
+                                />
+                                {errors.name && <span className="text-red-500 text-[10px]">{errors.name}</span>}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block font-bold text-gray-700 text-xs mb-1">Musim / Tahun</label>
+                                    <input
+                                        type="text"
+                                        value={data.season}
+                                        onChange={(e) => setData('season', e.target.value)}
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 text-xs focus:ring-2 focus:ring-brand-500 focus:bg-white"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block font-bold text-gray-700 text-xs mb-1">Sistem Kompetisi</label>
+                                    <select
+                                        value={data.type}
+                                        onChange={(e) => setData('type', e.target.value)}
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 text-xs focus:ring-2 focus:ring-brand-500 focus:bg-white cursor-pointer"
+                                    >
+                                        <option value="league">Liga (Klasemen)</option>
+                                        <option value="knockout">Sistem Gugur</option>
+                                        <option value="group">Fase Grup + Gugur</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Public Draft Bubble Checkbox */}
+                            <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 flex items-center justify-between">
+                                <div className="pr-2">
+                                    <label className="block font-black text-gray-800 text-xs">
+                                        🎲 Tampilkan Bubble Tim di Publik
+                                    </label>
+                                    <span className="text-[10px] text-gray-500 block">
+                                        Pengunjung dapat melihat bagan & hasil undian tim secara realtime.
+                                    </span>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={data.show_draft_bubble}
+                                    onChange={(e) => setData('show_draft_bubble', e.target.checked)}
+                                    className="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500 cursor-pointer"
                                 />
                             </div>
 
-                            <div>
-                                <label className="block font-bold text-gray-700 mb-1">Sistem Kompetisi</label>
-                                <select
-                                    value={data.type}
-                                    onChange={(e) => setData('type', e.target.value)}
-                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900 truncate"
-                                >
-                                    <option value="league">🏆 League (Klasemen)</option>
-                                    <option value="knockout">🥊 Cup (Gugur)</option>
-                                    <option value="group">🧩 Group Stage</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Waktu Bermain & Half Time Config */}
-                        <div className="p-3.5 bg-brand-50/60 rounded-2xl border border-brand-200/70 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <h4 className="font-black text-brand-800 uppercase tracking-wider text-[11px] flex items-center">
-                                    <Clock className="w-4 h-4 mr-1 text-brand-600" />
-                                    Atur Durasi Waktu Match (Mulai 5 Menit)
-                                </h4>
-                            </div>
-
-                            {/* Quick Presets */}
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-600 mb-1.5">Preset Cepat:</label>
-                                <div className="grid grid-cols-3 gap-1.5">
-                                    {[
-                                        { label: '5\'x2 (10\')', half: 5, ht: 5 },
-                                        { label: '10\'x2 (20\')', half: 10, ht: 5 },
-                                        { label: '15\'x2 (30\')', half: 15, ht: 5 },
-                                        { label: '20\'x2 (40\')', half: 20, ht: 5 },
-                                        { label: '20\'x2 (40\')', half: 20, ht: 10 },
-                                        { label: '45\'x2 (90\')', half: 45, ht: 15 },
-                                    ].map((p, i) => {
-                                        const isMatch = data.half_duration_minutes === p.half && data.half_time_duration_minutes === p.ht;
-                                        return (
-                                            <button
-                                                key={i}
-                                                type="button"
-                                                onClick={() => applyDurationPreset(p.half, p.ht)}
-                                                className={`py-1.5 px-1 rounded-xl text-[10px] font-black border text-center transition-all ${
-                                                    isMatch
-                                                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
-                                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-brand-50'
-                                                }`}
-                                            >
-                                                {p.label}
-                                            </button>
-                                        );
-                                    })}
+                            {/* Durasi Pertandingan Presets */}
+                            <div className="p-3 bg-brand-50/40 rounded-xl border border-brand-100 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-brand-600" />
+                                        <span>Pengaturan Waktu Pertandingan</span>
+                                    </span>
+                                    <span className="text-[10px] text-brand-600 font-bold bg-brand-100/70 px-2 py-0.5 rounded-full">
+                                        Standar Futsal
+                                    </span>
                                 </div>
-                            </div>
 
-                            {/* Detailed Inputs */}
-                            <div className="grid grid-cols-3 gap-2 pt-1">
-                                {/* Durasi Per Babak */}
+                                {/* Preset Buttons */}
                                 <div>
-                                    <label className="block font-bold text-gray-700 text-[10px] mb-1">Per Babak</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            min={5}
-                                            max={90}
-                                            value={data.half_duration_minutes}
-                                            onChange={(e) => {
-                                                const val = parseInt(e.target.value) || 5;
-                                                setData((prev) => ({
-                                                    ...prev,
-                                                    half_duration_minutes: val,
-                                                    match_duration_minutes: val * 2
-                                                }));
-                                            }}
-                                            className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
-                                            required
-                                        />
-                                        <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                        {[5, 10, 15, 20, 25, 30].map(m => (
-                                            <button
-                                                key={m}
-                                                type="button"
-                                                onClick={() => setData(prev => ({ ...prev, half_duration_minutes: m, match_duration_minutes: m * 2 }))}
-                                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.half_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
-                                            >
-                                                {m}'
-                                            </button>
-                                        ))}
+                                    <span className="text-[10px] text-gray-400 font-semibold block mb-1">Pilihan Cepat (Preset):</span>
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        {[
+                                            { label: "10' (5x2)", half: 5, ht: 3 },
+                                            { label: "20' (10x2)", half: 10, ht: 3 },
+                                            { label: "30' (15x2)", half: 15, ht: 5 },
+                                            { label: "40' (20x2)", half: 20, ht: 5 },
+                                        ].map((p, idx) => {
+                                            const isMatch = data.half_duration_minutes === p.half && data.half_time_duration_minutes === p.ht;
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => applyDurationPreset(p.half, p.ht)}
+                                                    className={`py-1.5 px-1 rounded-xl text-[10px] font-black border text-center transition-all ${
+                                                        isMatch
+                                                            ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                                            : 'bg-white text-gray-700 border-gray-200 hover:bg-brand-50'
+                                                    }`}
+                                                >
+                                                    {p.label}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
-                                {/* Total Durasi */}
-                                <div>
-                                    <label className="block font-bold text-gray-700 text-[10px] mb-1">Total Main</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            min={5}
-                                            max={180}
-                                            value={data.match_duration_minutes}
-                                            onChange={(e) => setData('match_duration_minutes', parseInt(e.target.value) || 10)}
-                                            className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
-                                            required
-                                        />
-                                        <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                {/* Detailed Inputs */}
+                                <div className="grid grid-cols-3 gap-2 pt-1">
+                                    {/* Durasi Per Babak */}
+                                    <div>
+                                        <label className="block font-bold text-gray-700 text-[10px] mb-1">Per Babak</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min={5}
+                                                max={90}
+                                                value={data.half_duration_minutes}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 5;
+                                                    setData((prev) => ({
+                                                        ...prev,
+                                                        half_duration_minutes: val,
+                                                        match_duration_minutes: val * 2
+                                                    }));
+                                                }}
+                                                className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
+                                                required
+                                            />
+                                            <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {[5, 10, 15, 20, 25, 30].map(m => (
+                                                <button
+                                                    key={m}
+                                                    type="button"
+                                                    onClick={() => setData(prev => ({ ...prev, half_duration_minutes: m, match_duration_minutes: m * 2 }))}
+                                                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.half_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                                >
+                                                    {m}'
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                        {[10, 20, 30, 40, 50, 60].map(m => (
-                                            <button
-                                                key={m}
-                                                type="button"
-                                                onClick={() => setData('match_duration_minutes', m)}
-                                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.match_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
-                                            >
-                                                {m}'
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
 
-                                {/* Half Time Break */}
-                                <div>
-                                    <label className="block font-bold text-gray-700 text-[10px] mb-1">Istirahat (HT)</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            max={60}
-                                            value={data.half_time_duration_minutes}
-                                            onChange={(e) => setData('half_time_duration_minutes', parseInt(e.target.value) || 5)}
-                                            className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
-                                            required
-                                        />
-                                        <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                    {/* Total Durasi */}
+                                    <div>
+                                        <label className="block font-bold text-gray-700 text-[10px] mb-1">Total Main</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min={5}
+                                                max={180}
+                                                value={data.match_duration_minutes}
+                                                onChange={(e) => setData('match_duration_minutes', parseInt(e.target.value) || 10)}
+                                                className="w-full p-2 bg-gray-100 border border-gray-200 rounded-xl font-black text-center text-gray-700 text-xs cursor-not-allowed"
+                                                readOnly
+                                            />
+                                            <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                        </div>
+                                        <span className="text-[9px] text-gray-400 block mt-1 text-center font-medium">Otomatis (2x Babak)</span>
                                     </div>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                        {[5, 10, 15, 20].map(m => (
-                                            <button
-                                                key={m}
-                                                type="button"
-                                                onClick={() => setData('half_time_duration_minutes', m)}
-                                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.half_time_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
-                                            >
-                                                {m}'
-                                            </button>
-                                        ))}
+
+                                    {/* Jeda Istirahat (Half Time) */}
+                                    <div>
+                                        <label className="block font-bold text-gray-700 text-[10px] mb-1">Jeda HT</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={60}
+                                                value={data.half_time_duration_minutes}
+                                                onChange={(e) => setData('half_time_duration_minutes', parseInt(e.target.value) || 5)}
+                                                className="w-full p-2 bg-white border border-gray-200 rounded-xl font-black text-center text-gray-900 text-xs focus:ring-2 focus:ring-brand-500"
+                                                required
+                                            />
+                                            <span className="absolute right-2 top-2 text-[10px] text-gray-400 font-bold">mnt</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {[5, 10, 15, 20].map(m => (
+                                                <button
+                                                    key={m}
+                                                    type="button"
+                                                    onClick={() => setData('half_time_duration_minutes', m)}
+                                                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${data.half_time_duration_minutes === m ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                                >
+                                                    {m}'
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* System Points Config */}
-                        {data.type === 'league' && (
-                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                                <h4 className="font-bold text-gray-700 text-[11px]">Sistem Perhitungan Poin Klasemen</h4>
-                                <div className="grid grid-cols-3 gap-2 text-center">
-                                    <div>
-                                        <label className="block text-[10px] text-gray-500 font-bold mb-1">Menang</label>
-                                        <input
-                                            type="number"
-                                            value={data.points_win}
-                                            onChange={(e) => setData('points_win', parseInt(e.target.value))}
-                                            className="w-full p-1.5 bg-white border border-gray-200 rounded-lg text-center font-bold text-emerald-600"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] text-gray-500 font-bold mb-1">Seri</label>
-                                        <input
-                                            type="number"
-                                            value={data.points_draw}
-                                            onChange={(e) => setData('points_draw', parseInt(e.target.value))}
-                                            className="w-full p-1.5 bg-white border border-gray-200 rounded-lg text-center font-bold text-amber-600"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] text-gray-500 font-bold mb-1">Kalah</label>
-                                        <input
-                                            type="number"
-                                            value={data.points_loss}
-                                            onChange={(e) => setData('points_loss', parseInt(e.target.value))}
-                                            className="w-full p-1.5 bg-white border border-gray-200 rounded-lg text-center font-bold text-red-500"
-                                        />
+                            {/* System Points Config */}
+                            {data.type === 'league' && (
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                                    <h4 className="font-bold text-gray-700 text-[11px]">Sistem Perhitungan Poin Klasemen</h4>
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div>
+                                            <label className="block text-[10px] text-gray-500 font-bold mb-1">Menang</label>
+                                            <input
+                                                type="number"
+                                                value={data.points_win}
+                                                onChange={(e) => setData('points_win', parseInt(e.target.value))}
+                                                className="w-full p-1.5 bg-white border border-gray-200 rounded-lg text-center font-bold text-emerald-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-gray-500 font-bold mb-1">Seri</label>
+                                            <input
+                                                type="number"
+                                                value={data.points_draw}
+                                                onChange={(e) => setData('points_draw', parseInt(e.target.value))}
+                                                className="w-full p-1.5 bg-white border border-gray-200 rounded-lg text-center font-bold text-amber-600"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-gray-500 font-bold mb-1">Kalah</label>
+                                            <input
+                                                type="number"
+                                                value={data.points_loss}
+                                                onChange={(e) => setData('points_loss', parseInt(e.target.value))}
+                                                className="w-full p-1.5 bg-white border border-gray-200 rounded-lg text-center font-bold text-red-500"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-
-                        <div className="flex space-x-2 pt-2">
-                            <button
-                                type="submit"
-                                className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-md text-xs"
-                            >
-                                {editingComp ? 'Perbarui Turnamen' : '+ Buat Turnamen Baru'}
-                            </button>
-                            {editingComp && (
-                                <button
-                                    type="button"
-                                    onClick={() => { reset(); setEditingComp(null); }}
-                                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs"
-                                >
-                                    Batal
-                                </button>
                             )}
-                        </div>
-                    </form>
-                </div>
 
-                {/* Right 2 Columns: Competitions List */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">Daftar Turnamen Futsal</h3>
+                            <div className="flex space-x-2 pt-2">
+                                <button
+                                    type="submit"
+                                    className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-md text-xs"
+                                >
+                                    {editingComp ? 'Perbarui Turnamen' : '+ Buat Turnamen Baru'}
+                                </button>
+                                {editingComp && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { reset(); setEditingComp(null); }}
+                                        className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs"
+                                    >
+                                        Batal
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Right 2 Columns: Competitions List */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+                        <h3 className="text-base font-bold text-gray-900 mb-4">Daftar Turnamen Futsal</h3>
 
                     {/* Mobile Cards (Visible < md) */}
                     <div className="block md:hidden space-y-3">
@@ -518,7 +549,7 @@ export default function AdminCompetitions({ competitions, allTeams }) {
                         </table>
                     </div>
                 </div>
-
+            </div>
             </div>
 
             {/* MODAL KELOLA TIM PESERTA TURNAMEN */}

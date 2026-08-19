@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\RegistrationController as AdminRegistrationController;
 use App\Http\Controllers\Public\RegistrationController as PublicRegistrationController;
+use App\Http\Controllers\Public\TeamDraftController;
 use App\Http\Controllers\Public\AboutController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\FavoriteController;
@@ -34,6 +35,7 @@ Route::middleware(['throttle:300,1'])->group(function () {
     Route::get('/events', [PublicEventController::class, 'index'])->name('public.events');
     Route::post('/events/{id}/like', [PublicEventController::class, 'like'])->name('public.events.like');
     Route::get('/about', [AboutController::class, 'index'])->name('public.about');
+    Route::get('/api/teams-draft', [TeamDraftController::class, 'getDraftData'])->name('api.teams-draft');
     
     Route::get('/register', [PublicRegistrationController::class, 'index'])->name('public.register');
     Route::post('/register', [PublicRegistrationController::class, 'store'])->name('public.register.store');
@@ -62,6 +64,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('/competitions/{id}', [CompetitionController::class, 'update'])->name('competitions.update');
     Route::post('/competitions/{id}/active', [CompetitionController::class, 'setActive'])->name('competitions.active');
     Route::post('/competitions/{id}/sync-teams', [CompetitionController::class, 'syncTeams'])->name('competitions.sync-teams');
+    Route::post('/competitions/{id}/toggle-draft-bubble', [CompetitionController::class, 'toggleDraftBubble'])->name('competitions.toggle-draft-bubble');
     Route::delete('/competitions/{id}', [CompetitionController::class, 'destroy'])->name('competitions.destroy');
 
     // Teams
